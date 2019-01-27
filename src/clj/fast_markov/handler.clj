@@ -20,17 +20,19 @@
 ;(("I" "think" "the" "most") ("think" "the" "most" "important") ("the" "most" "important" "thing") ("most" "important" "thing" "is")...
 (def word-groups (apply (group phrase-length) (clojure.string/split food #" ")))
 
-;["I" ("think" "the" "most") ["I" ("also" "think" "that")]...
-(def pre-phrase-map (reduce merge (map #(vector (first %) (rest %) ) word-groups)))
+;({"I" ("think" "the" "most")} {"I" ("also" "think" "that")}...
+(def word-maps (map (fn [x] {(first x)(rest x)}) word-groups))
 
-;[["I" ("think" "the" "most")] ["I" ("also" "think" "that")]...
-(def phrase-mapping-vector (merge (drop 2 pre-phrase-map) (vector (first pre-phrase-map)(second pre-phrase-map))))
+;>(words-for "I")
+;(("think" "the" "most") ("don't" "have" "all") ("know" "Dave" "has") ("think" "it's" "important"))
+(defn words-for [p] (map #(second(first %)) (filter #(= (first (first %)) p) word-maps)) )
 
-;({"I" ("think" "the" "most")} {"I" ("also" "think")}...
-(def phrase-map (map #(apply hash-map %) phrase-mapping-vector))
-
-;({"I" ("think" "the" "most")} {"I" ("also" "think")}...
-(def chain-store (reduce #(merge-with list %1 %2) phrase-map) )
+;(((("think" "the" "most") ("don't" "have" "all")) ("know" "Dave" "has")) ("think" "it's" "important"))
+(defn merge-preserve [a b]
+  (if (contains? a (first (first b))) 
+    (into a (hash-map (first (first b)) (conj (a (first (first b))) (second(first b)))  ))
+    (into a b)
+    ))
 
 (def store (memory/memory-store))
 
