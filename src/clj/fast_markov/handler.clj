@@ -38,8 +38,11 @@
               ))
 
 ;> (group 3 [1 2 3 4 5 6])
-;((1 2 3) (2 3 4) (3 4 5) (4 5 6)(5 6)(6()))
-(defn group [n v] (let [frag (take n v) rem (drop n v)] (if (= (count frag) 0) () (cons frag (group n (rest v))))))
+;((6) (5 6) (4 5 6) (3 4 5) (2 3 4) (1 2 3))
+
+(defn group-inner
+  [n v prod] (let [frag (take n v) rem (drop n v) pr (cons frag prod) ] (if (= (count frag) 0) prod (recur n (rest v) pr))))
+(defn group [n v] (group-inner n v []))
 
 ;(("I" "think" "the" "most") ("think" "the" "most" "important") ("the" "most" "important" "thing") ("most" "important" "thing" "is")...
 (defn word-groups [p] (group (phrase-length) (clojure.string/split p #" ")))
