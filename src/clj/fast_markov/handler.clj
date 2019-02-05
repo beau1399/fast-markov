@@ -11,7 +11,7 @@
 
 (def target-length 200)
 
-(defn phrase-length []  (+ 2 (rand-int 7)))
+(defn phrase-length []  (+ 4 (rand-int 3)))
 ;(defn phrase-length []  9)
 
 ;Should end with a period. Quotes, etc., aren't really supported, just commas, periods, question marks, - and !.
@@ -20,6 +20,10 @@
 ;TODO - escape for dots that don't mean full stop
 
 (def raw-food (atom (slurp "input")))
+
+;("I" "I" "I" "Dave" "But" "I've" "I")
+;(defn starters [] (map first (filter #(re-matches #"^[A-Z]{1}.*$" (first % ))(word-groups (cook @raw-food)) )))
+(def starters (atom (clojure.string/split (slurp "starters") #"\n")))
 
 ;Add to this as needed for your input text. This is a good starting point. You want to deal with
 ; more specific cases first, and generally reduce ambiguity, e.g. removing dots that aren't full
@@ -50,7 +54,6 @@
 
 ;> (group 3 [1 2 3 4 5 6])
 ;((6) (5 6) (4 5 6) (3 4 5) (2 3 4) (1 2 3))
-
 (defn group-inner
   [n v prod] (let [frag (take n v) rem (drop n v) pr (cons frag prod) ] (if (= (count frag) 0) prod (recur n (rest v) pr))))
 (defn group [n v] (group-inner n v []))
@@ -65,17 +68,13 @@
 ;(("think" "the" "most")("think" "the" "most")("don't" "have" "all")("know" "Dave" "has")("think" "it's" "important"))
 (defn words-for [p maps] (map #(second(first %)) (filter #(= (first (first %)) p) maps)))
 
-;("I" "I" "I" "Dave" "But" "I've" "I")
-(defn starters [] (map first (filter #(re-matches #"^[A-Z]{1}.*$" (first % ))(word-groups (cook @raw-food)) )))
-;(defn starters [] '("Stadium" "We" "How" "Tomorrow" "Southern##Miss" "Dave" "Some"))
-
 ;>(pick-words "I")
 ;("think" "it's" "important" "for")
 (defn pick-words [p]
   (let [options (words-for p (word-maps (word-groups (cook @raw-food))))] 
      (clojure.string/join " "(nth options (rand-int (count options))))))
 
-(defn pick-starter [] (nth (starters) (rand-int (count (starters)))))
+(defn pick-starter [] (nth @starters (rand-int (count @starters))))
 
 (defn phrase []  (let [x (pick-starter)]  (str x " " (pick-words x))))
 
@@ -117,13 +116,27 @@
          :post {:parameters {:body {:quotetext string?}}
                 :handler (fn  [{ {qt :quotetext} :params }]
                            (swap! raw-food #(str % " " qt))
-                           (spit "input" (str @raw-food " " qt))                           
+                           (spit "input" @raw-food " " qt)
+
+                           (swap! starters
+                                  #(concat %
+
+                                           ;(map first (filter (fn [p] (re-matches #"^[A-Z]{1}.*$" (first p)))(word-groups (cook qt))))
+
+;TODO -robustness w/ respect to trailing newline in starters file
+                                           
+                                        (map (fn[p] (first (clojure.string/split p #"\s" ))) (clojure.string/split qt #"\.\s"))
+
+
+                                           ))
+
+
+                           (spit "starters"  (clojure.string/join "\n" @starters ))
+                           
                            {:status 200
                             :headers {"Content-Type" "text/html"}
                             :body (form-body)})}
-
          }]]
-
     
     {:data {:middleware (concat [[wrap-session {:store store}]] middleware) }})
     (reitit-ring/routes
