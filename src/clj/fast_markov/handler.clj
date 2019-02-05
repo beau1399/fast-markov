@@ -1,3 +1,10 @@
+;TODO - escape for dots that don't mean full stop
+;TODO -robustness w/ respect to trailing newline in starters file
+;TODO - proper starters file, not what just happens to be checked in
+;TODO - remove superfluous files from github
+;TODO - commenting, github readme
+;TODO - learning of starters file should consider ! and ? not just .
+
 (ns fast-markov.handler
   (:require 
   	    [reitit.ring.coercion :as rrc]
@@ -17,7 +24,6 @@
 ;Should end with a period. Quotes, etc., aren't really supported, just commas, periods, question marks, - and !.
 ; Use ## to join together words that shouldn't be separated e.g. Baton##Rouge
 ; Parentheses generally don't work well b/c there's no logic here to ensure they get matched.
-;TODO - escape for dots that don't mean full stop
 
 (def raw-food (atom (slurp "input")))
 
@@ -119,17 +125,9 @@
                            (spit "input" @raw-food " " qt)
 
                            (swap! starters
-                                  #(concat %
-
-                                           ;(map first (filter (fn [p] (re-matches #"^[A-Z]{1}.*$" (first p)))(word-groups (cook qt))))
-
-;TODO -robustness w/ respect to trailing newline in starters file
-                                           
+                                  #(concat %                                          
                                         (map (fn[p] (first (clojure.string/split p #"\s" ))) (clojure.string/split qt #"\.\s"))
-
-
                                            ))
-
 
                            (spit "starters"  (clojure.string/join "\n" @starters ))
                            
