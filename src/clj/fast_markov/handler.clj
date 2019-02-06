@@ -1,9 +1,11 @@
 ;TODO - escape for dots that don't mean full stop
-;TODO -robustness w/ respect to trailing newline in starters file
+;TODO - support newlines in input
 ;TODO - proper starters file, not what just happens to be checked in
 ;TODO - remove superfluous files from github
 ;TODO - commenting, github readme
 ;TODO - learning of starters file should consider ! and ? not just .
+;TODO - deal with or document quotes
+;TODO - deal with or document ()
 
 (ns fast-markov.handler
   (:require 
@@ -35,6 +37,7 @@
 ; more specific cases first, and generally reduce ambiguity, e.g. removing dots that aren't full
 ; stops since they confuse meaning.
 (defn cook [p]  (-> p
+              (clojure.string/replace "\n" " ")
               (clojure.string/replace "a.m." "AM")
               (clojure.string/replace "p.m." "PM")
               (clojure.string/replace "." " _DOT_")
