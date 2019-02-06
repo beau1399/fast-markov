@@ -20,16 +20,23 @@
             [hiccup.page :refer [include-js include-css html5]]
             [config.core :refer [env]]))
 (def target-length 200)
-(def escaper "!!-!!")
+(def escaper " !@#$ ") ;bounding with a space to ensure proper atom separation; may need to collapse double spaces later e.g. in cleanup
 (defn phrase-length []  (+ 4 (rand-int 3)))
 
 ;Turn quotations, floats (etc.?)  into atomic units that look like single words (to be undone in final output)
-(defn quotes[txt]  (re-seq #"\"[^\"]*\"" txt))
-(defn floats[txt] (re-seq #"\s[\d]+\.[\d]+\s" txt))
+;TODO these can really be in a file?
+(def unit-finders [ #"\"[^\"]*\""              ;Quotations
+                    #"\s[\d]+\.[\d]+\s"        ;Floating point literal
+                  ])
 (defn esc-functions[snippets]
    (map (fn[p] #(clojure.string/.replace % p (clojure.string/.replace p  " " escaper)))snippets))
 (defn unitize[find-func txt]
   ((apply comp (esc-functions (find-func txt))) txt))
+(defn find-units [regex] #(re-seq regex %))
+;(unitize-all txt)
+;"Then he said \"This!!-!!is!!-!!a!!-!!quote!\" with anger. But I got a!!-!!4.0!!-!!GPA!"
+(defn unitize-all [txt] ((apply comp (map (fn[p]  #(unitize (find-units p) %)) unit-finders)) txt))
+
 
 ;Should end with a period. Quotes, etc., aren't really supported, just commas, periods, question marks, - and !.
 ; Use ## to join together words that shouldn't be separated e.g. Baton##Rouge
