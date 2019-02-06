@@ -25,10 +25,8 @@
             [hiccup.page :refer [include-js include-css html5]]
             [config.core :refer [env]]))
 (def target-length 200)
-
 (def escaper  "!@#$") ;Used to stand for whitespace in units identified by regex
 (def delimiter  "$#@!") ;wrapped around units; will be removed, not replaced
-
 ;TODO can this be learned? List of seed + successful phrase-length values?
 (defn phrase-length []  (+ 4 (rand-int 3)))
 
@@ -38,19 +36,25 @@
                    #"\s[0-9]+\.[0-9]+\s"        ;Floating point literal
                    ;TODO PAREN PAIR REGEX
                   ])
+
+;Generates list of functions that replaces each string in snippets w/ its escaped and delimited value
 (defn esc-functions[snippets]
-   (map (fn[p] #(clojure.string/replace % p (str delimiter (clojure.string/.replace p  " " escaper) delimiter)))snippets))
+  (map (fn[p] #(clojure.string/replace % p (str delimiter (clojure.string/.replace p  " " escaper) delimiter)))snippets))
+
+;Accepts txt and a function that identifies a set of units in txt and escapes/delimits all those units comprehensively
+; using esc-functions 
 (defn unitize[find-func txt]
   ((apply comp (esc-functions (find-func txt))) txt))
+
+;Takes a regex and returns a function that fins all occurences of it in its parameter
 (defn find-units [regex] #(re-seq regex %))
+
+;Handles generation of units based on the unit-finders regex list
 ;(unitize-all txt)
 ;"Then he said \"This!!-!!is!!-!!a!!-!!quote!\" with anger. But I got a!!-!!4.0!!-!!GPA!"
 (defn unitize-all [txt] ((apply comp (map (fn[p]  #(unitize (find-units p) %)) unit-finders)) txt))
 
-
-;Should end with a period. Quotes, etc., aren't really supported, just commas, periods, question marks, - and !.
-; Use ## to join together words that shouldn't be separated e.g. Baton##Rouge
-; Parentheses generally don't work well b/c there's no logic here to ensure they get matched.
+; Use ## to join together words that shouldn't be separated e.g. Baton##Rouge? Is this the final design?
 (def raw-food (atom (slurp "input")))
 
 ;(defn auto-atoms[p]
@@ -114,7 +118,6 @@
      (clojure.string/join " "(nth options (rand-int (count options))))))
 
 (defn pick-starter [] (nth @starters (rand-int (count @starters))))
-
 (defn phrase []  (let [x (pick-starter)]  (str x " " (pick-words x))))
 
 (defn make-quote
@@ -139,7 +142,6 @@
                  [:input {:type "submit" :value "Submit Good Quote"} ]
                  [:button {:onclick  "location.href='/';event.preventDefault();"} "Get Another"]
                                           ](include-js "/js/app.js")]))
-
 (def app
   (reitit-ring/ring-handler
    (reitit-ring/router
@@ -150,24 +152,17 @@
                     {:status 200
                      :headers {"Content-Type" "text/html"}
                      :body (form-body)})}
-
          :post {:parameters {:body {:quotetext string?}}
                 :handler (fn  [{ {qt :quotetext} :params }]
                            (swap! raw-food #(str % " " qt))
                            (spit "input" @raw-food " " qt)
-
                            (swap! starters
                                   #(concat %                                          
-                                        (map (fn[p] (first (clojure.string/split p #"\s" ))) (clojure.string/split qt #"[\.\?\!]\s"))
-                                           ))
-
-                           (spit "starters"  (clojure.string/join "\n" @starters ))
-                           
+                                        (map (fn[p] (first (clojure.string/split p #"\s" ))) (clojure.string/split qt #"[\.\?\!]\s"))))
+                           (spit "starters"  (clojure.string/join "\n" @starters ))                           
                            {:status 200
                             :headers {"Content-Type" "text/html"}
-                            :body (form-body)})}
-         }]]
-    
+                            :body (form-body)})}}]]    
     {:data {:middleware (concat [[wrap-session {:store store}]] middleware) }})
     (reitit-ring/routes
      (reitit-ring/create-resource-handler {:path "/" :root "/public"})
