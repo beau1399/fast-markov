@@ -3,16 +3,16 @@
 ;TODO - remove superfluous files from github
 ;TODO - commenting, github readme
 ;TODO - detect and handle floating point literals
-;TODO - Automatic atomization of phrases like To The Top
+;TODO - Automatic atomization of phrases like To The Top TODO use unitization regex system
 ;TODO - too much clojure.string/
-;TODO - defines / configurable escape characters
+;TODO - defines / configurable escape characters - APPLY THOROUGHLY
 ;TODO - quote modes: unitize, remove, generate/balance
 ;TODO - similar issue b/w quotes and parens?
 ;TODO - empty starters file -> autogen of starters atom
 ;TODO - ultimately input file can be repalced by URL?
-;TODO - robust w/ respect to stray spaces /tabs /etc. e.g. in unit-finder stuff
-;TODO - ' quotations within double quote quotations - can be handled by ordering unitization regexes right? OR do they (and floats in quotes) just work naturally?
-
+;TODO - robust w/ respect to stray spaces /tabs /etc. e.g. in unit-finder stuff; maybe collapse double whitespace combos on file read?
+;TODO - ' quotations within double quote quotations - can be handled by ordering unitization regexes right? OR do they (and floats in quotes) just work naturally? Outermost unit will prevail as a unit, cleanup will make it all look nice.
+;TODO - readme.md (x2) should note that this is a porpus project
 
 (ns fast-markov.handler
   (:require 
@@ -29,13 +29,14 @@
 (def escaper  "!@#$") ;Used to stand for whitespace in units identified by regex
 (def delimiter  "$#@!") ;wrapped around units; will be removed, not replaced
 
+;TODO can this be learned? List of seed + successful phrase-length values?
 (defn phrase-length []  (+ 4 (rand-int 3)))
 
 ;Turn quotations, floats (etc.?)  into atomic units that look like single words (to be undone in final output)
 ;TODO these can really be in a file?
 (def unit-finders [ #"\"[^\"]*\""              ;Quotations
-                   #"[0-9]+\.[0-9]+"        ;Floating point literal
-                   ;TODO QUOTE PAIR REGEX
+                   #"\s[0-9]+\.[0-9]+\s"        ;Floating point literal
+                   ;TODO PAREN PAIR REGEX
                   ])
 (defn esc-functions[snippets]
    (map (fn[p] #(clojure.string/replace % p (str delimiter (clojure.string/.replace p  " " escaper) delimiter)))snippets))
