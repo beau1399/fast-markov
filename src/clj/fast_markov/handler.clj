@@ -1,11 +1,13 @@
 ;TODO - escape for dots that don't mean full stop
-;TODO - support newlines in input
 ;TODO - proper starters file, not what just happens to be checked in
 ;TODO - remove superfluous files from github
 ;TODO - commenting, github readme
-;TODO - learning of starters file should consider ! and ? not just .
-;TODO - deal with or document quotes
-;TODO - deal with or document ()
+;TODO - detect and handle floating point literals
+;TODO - Automatic atomization of phrases like To The Top
+;TODO - too much clojure.string/
+;TODO - defines / configurable escape characters
+;TODO - quote modes: unitize, remove, generate/balance
+;TODO - similar issue b/w quotes and parens?
 
 (ns fast-markov.handler
   (:require 
@@ -17,17 +19,25 @@
             [fast-markov.middleware :refer [middleware]]
             [hiccup.page :refer [include-js include-css html5]]
             [config.core :refer [env]]))
-
 (def target-length 200)
-
+(def escaper "!!-!!")
 (defn phrase-length []  (+ 4 (rand-int 3)))
-;(defn phrase-length []  9)
+
+;Turn quotations, floats (etc.?)  into atomic units that look like single words (to be undone in final output)
+(defn quotes[txt]  (re-seq #"\"[^\"]*\"" txt))
+(defn floats[txt] (re-seq #"\s[\d]+\.[\d]+\s" txt))
+(defn esc-functions[snippets]
+   (map (fn[p] #(clojure.string/.replace % p (clojure.string/.replace p  " " escaper)))snippets))
+(defn unitize[find-func txt]
+  ((apply comp (esc-functions (find-func txt))) txt))
 
 ;Should end with a period. Quotes, etc., aren't really supported, just commas, periods, question marks, - and !.
 ; Use ## to join together words that shouldn't be separated e.g. Baton##Rouge
 ; Parentheses generally don't work well b/c there's no logic here to ensure they get matched.
-
 (def raw-food (atom (slurp "input")))
+
+;(defn auto-atoms[p]
+;  (re-seq #"[A-Z][A-Za-z]*\s+(?:[A-Z][A-Za-z]*\s+)+" p  ))
 
 ;("I" "I" "I" "Dave" "But" "I've" "I")
 ;(defn starters [] (map first (filter #(re-matches #"^[A-Z]{1}.*$" (first % ))(word-groups (cook @raw-food)) )))
@@ -37,6 +47,7 @@
 ; more specific cases first, and generally reduce ambiguity, e.g. removing dots that aren't full
 ; stops since they confuse meaning.
 (defn cook [p]  (-> p
+              (unitize-quotes)
               (clojure.string/replace "\n" " ")
               (clojure.string/replace "a.m." "AM")
               (clojure.string/replace "p.m." "PM")
@@ -51,6 +62,7 @@
   (if (or (=(last p) \.)(=(last p) \?)(=(last p) \!)) (str p) (recur (clojure.string/join (take (dec (count p)) p)))))
 
 (defn cleanup [p] (-> p
+              (clojure.string/replace escaper  " ")
               (clojure.string/replace " _DOT_"  ".")
               (clojure.string/replace "_DASH_" " - ")
               (clojure.string/replace " _COMMA_" ",")
@@ -89,8 +101,8 @@
 
 (defn make-quote
   ([] (make-quote (phrase)))
-  ([p] (let [s (str p " " (pick-words (last(clojure.string/split p #"\s")))) lword (last(clojure.string/split s #"\s"))   ]
-     (if (and (not (nil? (re-matches #"(?s)^.*_DOT_.*$" s)))    (>= (count s) target-length)) ;(?s) makes . match \n
+  ([p] (let [s (str p " " (pick-words (last(clojure.string/split p #"\s")))) lword (last(clojure.string/split s #"\s"))]
+     (if (and (not (nil? (re-matches #"(?s)^.*_DOT_.*$" s)))    (>= (count s) target-length)) 
        (cleanup s)
        (recur s)))))
 
@@ -108,7 +120,6 @@
                                           [:br]
                  [:input {:type "submit" :value "Submit Good Quote"} ]
                  [:button {:onclick  "location.href='/';event.preventDefault();"} "Get Another"]
-                          ;:onclick "fast_markov.core.greet();event.preventDefault();"
                                           ](include-js "/js/app.js")]))
 
 (def app
@@ -129,7 +140,7 @@
 
                            (swap! starters
                                   #(concat %                                          
-                                        (map (fn[p] (first (clojure.string/split p #"\s" ))) (clojure.string/split qt #"\.\s"))
+                                        (map (fn[p] (first (clojure.string/split p #"\s" ))) (clojure.string/split qt #"[\.\?\!]\s"))
                                            ))
 
                            (spit "starters"  (clojure.string/join "\n" @starters ))
