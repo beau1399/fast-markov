@@ -11,7 +11,8 @@
 ;TODO - empty starters file -> autogen of starters atom
 ;TODO - ultimately input file can be repalced by URL?
 ;TODO - robust w/ respect to stray spaces /tabs /etc. e.g. in unit-finder stuff
-;TODO - single quote quotations within double quote quotations - can be handled by ordering unitization regexes right? OR do they just work naturally?
+;TODO - ' quotations within double quote quotations - can be handled by ordering unitization regexes right? OR do they (and floats in quotes) just work naturally?
+
 
 (ns fast-markov.handler
   (:require 
