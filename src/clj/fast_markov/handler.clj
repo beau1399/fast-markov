@@ -8,6 +8,10 @@
 ;TODO - defines / configurable escape characters
 ;TODO - quote modes: unitize, remove, generate/balance
 ;TODO - similar issue b/w quotes and parens?
+;TODO - empty starters file -> autogen of starters atom
+;TODO - ultimately input file can be repalced by URL?
+;TODO - robust w/ respect to stray spaces /tabs /etc. e.g. in unit-finder stuff
+;TODO - single quote quotations within double quote quotations - can be handled by ordering unitization regexes right? OR do they just work naturally?
 
 (ns fast-markov.handler
   (:require 
@@ -20,16 +24,20 @@
             [hiccup.page :refer [include-js include-css html5]]
             [config.core :refer [env]]))
 (def target-length 200)
-(def escaper " !@#$ ") ;bounding with a space to ensure proper atom separation; may need to collapse double spaces later e.g. in cleanup
+
+(def escaper  "!@#$") ;Used to stand for whitespace in units identified by regex
+(def delimiter  "$#@!") ;wrapped around units; will be removed, not replaced
+
 (defn phrase-length []  (+ 4 (rand-int 3)))
 
 ;Turn quotations, floats (etc.?)  into atomic units that look like single words (to be undone in final output)
 ;TODO these can really be in a file?
 (def unit-finders [ #"\"[^\"]*\""              ;Quotations
-                    #"\s[\d]+\.[\d]+\s"        ;Floating point literal
+                   #"[0-9]+\.[0-9]+"        ;Floating point literal
+                   ;TODO QUOTE PAIR REGEX
                   ])
 (defn esc-functions[snippets]
-   (map (fn[p] #(clojure.string/.replace % p (clojure.string/.replace p  " " escaper)))snippets))
+   (map (fn[p] #(clojure.string/replace % p (str delimiter (clojure.string/.replace p  " " escaper) delimiter)))snippets))
 (defn unitize[find-func txt]
   ((apply comp (esc-functions (find-func txt))) txt))
 (defn find-units [regex] #(re-seq regex %))
@@ -54,7 +62,7 @@
 ; more specific cases first, and generally reduce ambiguity, e.g. removing dots that aren't full
 ; stops since they confuse meaning.
 (defn cook [p]  (-> p
-              (unitize-quotes)
+              (unitize-all)
               (clojure.string/replace "\n" " ")
               (clojure.string/replace "a.m." "AM")
               (clojure.string/replace "p.m." "PM")
@@ -70,6 +78,7 @@
 
 (defn cleanup [p] (-> p
               (clojure.string/replace escaper  " ")
+              (clojure.string/replace delimiter  "")
               (clojure.string/replace " _DOT_"  ".")
               (clojure.string/replace "_DASH_" " - ")
               (clojure.string/replace " _COMMA_" ",")
