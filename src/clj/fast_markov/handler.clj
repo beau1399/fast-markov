@@ -35,7 +35,7 @@
 
 ;Turn quotations, floats (etc.?)  into atomic units that look like single words (to be undone in final output)
 ;TODO these can really be in a file?
-(def unit-finders (read-string (slurp "units")))
+(def unit-finders (read-string (str "[" (slurp "units") "]")))
 
 ;Generates list of functions that replaces each string in snippets w/ its escaped and delimited value
 (defn esc-functions[snippets]
