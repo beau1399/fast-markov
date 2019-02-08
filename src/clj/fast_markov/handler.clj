@@ -1,4 +1,4 @@
-;TODO - escape for dots that don't mean full stop
+;Todo - escape for dots that don't mean full stop
 ;TODO - proper starters file, not what just happens to be checked in
 ;TODO - remove superfluous files from github
 ;TODO - commenting, github readme
@@ -8,7 +8,6 @@
 ;TODO - defines / configurable escape characters - APPLY THOROUGHLY
 ;TODO - quote modes: unitize, remove, generate/balance
 ;TODO - similar issue b/w quotes and parens?
-;TODO - empty starters file -> autogen of starters atom
 ;TODO - ultimately input file can be repalced by URL?
 ;TODO - robust w/ respect to stray spaces /tabs /etc. e.g. in unit-finder stuff; maybe collapse double whitespace combos on file read?
 ;TODO - ' quotations within double quote quotations - can be handled by ordering unitization regexes right? OR do they (and floats in quotes) just work naturally? Outermost unit will prevail as a unit, cleanup will make it all look nice. This is a good overall paradigm b.c it identifies parts of the input string that don't represent examples of the semantics of the thing we are trying to imitate. As long as these are blocked together in viral and ultimately presentable format (which not attempting to nest facilitates), the end goal is served.
@@ -29,22 +28,18 @@
             [hiccup.page :refer [include-js include-css html5]]
             [config.core :refer [env]]))
 (def target-length 200)
-(def escaper  "!@#$") ;Used to stand for whitespace within units identified by regex; will be replaced by space
-(def delimiter  "$#@!") ;wrapped around units; will be removed, not replaced
+(def escaper  "~~@") ;Used to stand for whitespace within units identified by regex; will be replaced by space
 
 ;TODO can this be learned? List of seed + successful phrase-length values?
 (defn phrase-length []  (+ 4 (rand-int 3)))
 
 ;Turn quotations, floats (etc.?)  into atomic units that look like single words (to be undone in final output)
 ;TODO these can really be in a file?
-(def unit-finders [ #"\"[^\"]*\""              ;Quotations
-                   #"\s[0-9]+\.[0-9]+\s"        ;Floating point literal
-                   ;TODO PAREN PAIR REGEX
-                  ])
+(def unit-finders (read-string (slurp "units")))
 
 ;Generates list of functions that replaces each string in snippets w/ its escaped and delimited value
 (defn esc-functions[snippets]
-  (map (fn[p] #(clojure.string/replace % p (str delimiter (clojure.string/.replace p  " " escaper) delimiter)))snippets))
+  (map (fn[p] #(clojure.string/replace % p  (str " " (clojure.string/.replace p  " " escaper) " ")))snippets))
 
 ;Accepts txt and a function that identifies a set of units in txt and escapes/delimits all those units comprehensively
 ; using esc-functions 
@@ -62,37 +57,30 @@
 ; Use ## to join together words in ./input that shouldn't be separated e.g. Baton##Rouge? Is this the final design?
 (def raw-food (atom (slurp "input")))
 
-;(defn auto-atoms[p]
-;  (re-seq #"[A-Z][A-Za-z]*\s+(?:[A-Z][A-Za-z]*\s+)+" p  ))
-
 ;Add to this as needed for your input text. This is a good starting point. You want to deal with
 ; more specific cases first, and generally reduce ambiguity, e.g. removing dots that aren't full
 ; stops since they confuse meaning.
 (defn cook [p]  (-> p
-              (unitize-all)
               (clojure.string/replace "\n" " ")
-              (clojure.string/replace "a.m." "AM")
-              (clojure.string/replace "p.m." "PM")
-              (clojure.string/replace "." " _DOT_")
-              (clojure.string/replace " - " " _DASH_ ")  ;This one will often be preceeded by a space in the source text
-              (clojure.string/replace "," " _COMMA_")
-              (clojure.string/replace "!" " _BANG_")
-              (clojure.string/replace "?" " _QUEST_")
+              (unitize-all)                                  
+              (clojure.string/replace ". " " _DOT_ ")
+              (clojure.string/replace ", " " _COMMA_ ")
+              (clojure.string/replace "! " " _BANG_ ")
+              (clojure.string/replace "? " " _QUEST_ ")
               ))
 
+;Make generated quote end with a .
 (defn trim-quote [p]
   (if (or (=(last p) \.)(=(last p) \?)(=(last p) \!)) (str p) (recur (clojure.string/join (take (dec (count p)) p)))))
 
 (defn cleanup [p] (-> p
               (clojure.string/replace escaper  " ")
-              (clojure.string/replace delimiter  "")
+              (clojure.string/replace #"\s+" " ")                      
               (clojure.string/replace " _DOT_"  ".")
-              (clojure.string/replace "_DASH_" " - ")
               (clojure.string/replace " _COMMA_" ",")
               (clojure.string/replace "##" " ")
               (clojure.string/replace " _BANG_" "!" )
               (clojure.string/replace " _QUEST_" "?")
-              (clojure.string/replace "  " " ")
               (trim-quote)
               ))
 
