@@ -11,8 +11,11 @@
 ;TODO - empty starters file -> autogen of starters atom
 ;TODO - ultimately input file can be repalced by URL?
 ;TODO - robust w/ respect to stray spaces /tabs /etc. e.g. in unit-finder stuff; maybe collapse double whitespace combos on file read?
-;TODO - ' quotations within double quote quotations - can be handled by ordering unitization regexes right? OR do they (and floats in quotes) just work naturally? Outermost unit will prevail as a unit, cleanup will make it all look nice.
+;TODO - ' quotations within double quote quotations - can be handled by ordering unitization regexes right? OR do they (and floats in quotes) just work naturally? Outermost unit will prevail as a unit, cleanup will make it all look nice. This is a good overall paradigm b.c it identifies parts of the input string that don't represent examples of the semantics of the thing we are trying to imitate. As long as these are blocked together in viral and ultimately presentable format (which not attempting to nest facilitates), the end goal is served.
 ;TODO - readme.md (x2) should note that this is a porpus project
+;TODO - 3 files: Lexer, Parser, and Web?
+;TODO - apply to some realworld rough data and document
+;TODO - build a github profile - sfp?
 
 (ns fast-markov.handler
   (:require 
@@ -21,12 +24,14 @@
 	    [reitit.ring :as reitit-ring]
             [ring.middleware.session :refer [wrap-session]]
             [ring.middleware.session.memory :as memory]
+            [clojure.java.io :as io]
             [fast-markov.middleware :refer [middleware]]
             [hiccup.page :refer [include-js include-css html5]]
             [config.core :refer [env]]))
 (def target-length 200)
-(def escaper  "!@#$") ;Used to stand for whitespace in units identified by regex
+(def escaper  "!@#$") ;Used to stand for whitespace within units identified by regex; will be replaced by space
 (def delimiter  "$#@!") ;wrapped around units; will be removed, not replaced
+
 ;TODO can this be learned? List of seed + successful phrase-length values?
 (defn phrase-length []  (+ 4 (rand-int 3)))
 
@@ -46,7 +51,7 @@
 (defn unitize[find-func txt]
   ((apply comp (esc-functions (find-func txt))) txt))
 
-;Takes a regex and returns a function that fins all occurences of it in its parameter
+;Takes a regex and returns a function that finds all occurences of it in its parameter
 (defn find-units [regex] #(re-seq regex %))
 
 ;Handles generation of units based on the unit-finders regex list
@@ -54,15 +59,11 @@
 ;"Then he said \"This!!-!!is!!-!!a!!-!!quote!\" with anger. But I got a!!-!!4.0!!-!!GPA!"
 (defn unitize-all [txt] ((apply comp (map (fn[p]  #(unitize (find-units p) %)) unit-finders)) txt))
 
-; Use ## to join together words that shouldn't be separated e.g. Baton##Rouge? Is this the final design?
+; Use ## to join together words in ./input that shouldn't be separated e.g. Baton##Rouge? Is this the final design?
 (def raw-food (atom (slurp "input")))
 
 ;(defn auto-atoms[p]
 ;  (re-seq #"[A-Z][A-Za-z]*\s+(?:[A-Z][A-Za-z]*\s+)+" p  ))
-
-;("I" "I" "I" "Dave" "But" "I've" "I")
-;(defn starters [] (map first (filter #(re-matches #"^[A-Z]{1}.*$" (first % ))(word-groups (cook @raw-food)) )))
-(def starters (atom (clojure.string/split (slurp "starters") #"\n")))
 
 ;Add to this as needed for your input text. This is a good starting point. You want to deal with
 ; more specific cases first, and generally reduce ambiguity, e.g. removing dots that aren't full
@@ -116,6 +117,13 @@
 (defn pick-words [p]
   (let [options (words-for p (word-maps (word-groups (cook @raw-food))))] 
      (clojure.string/join " "(nth options (rand-int (count options))))))
+
+;("I" "I" "I" "Dave" "But" "I've" "I")
+;(defn starters [] (map first (filter #(re-matches #"^[A-Z]{1}.*$" (first % ))(word-groups (cook @raw-food)) )))
+(def starters (atom
+                (if  (not  (.exists (io/as-file "starters")))
+                 (map first (filter #(re-matches #"^[A-Z]{1}.*$" (first % ))(word-groups (cook @raw-food))))
+                 (clojure.string/split (slurp "starters") #"\n"))))
 
 (defn pick-starter [] (nth @starters (rand-int (count @starters))))
 (defn phrase []  (let [x (pick-starter)]  (str x " " (pick-words x))))
