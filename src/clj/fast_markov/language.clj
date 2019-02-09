@@ -10,6 +10,5 @@
 (def units[
  #"\([^\)]*\)"              ;Parentheses
  #"\"[^\"]*\""              ;Quotations
- #"(?:\s[A-Z][^\s\.\?\!]+){2,}" ;Sequences of capitalized words
  #"Dr\.\s"
 ])

@@ -1,5 +1,6 @@
 ;TODO - input must end with . - doc?
 ;Todo - escape for dots that don't mean full stop
+;TODO - starters can be built around get-first-word? Obstacle is encoded vs. un-encoded.
 ;TODO - proper starters file, not what just happens to be checked in
 ;TODO - remove superfluous files from github
 ;TODO - commenting, github readme
@@ -57,9 +58,6 @@
 ; Use ## to join together words in ./input that shouldn't be separated e.g. Baton##Rouge? Is this the final design?
 (def raw-food (atom (slurp "input")))
 
-;Add to this as needed for your input text. This is a good starting point. You want to deal with
-; more specific cases first, and generally reduce ambiguity, e.g. removing dots that aren't full
-; stops since they confuse meaning.
 (defn cook [p]  (-> p
                     (clojure.string/replace "\n" " ")                                        
                     (clojure.string/replace "’" "'")
@@ -141,7 +139,8 @@
                  [:button {:onclick  "location.href='/';event.preventDefault();"} "Get Another"]
 
                                           ](include-js "/js/app.js")]))
-(defn get-first-word [qt]  (map (fn[p] (first (clojure.string/split p #"\s" ))) (clojure.string/split qt #"[\.\?\!]\s")))
+;(defn get-first-word [qt]  (map (fn[p] (first (clojure.string/split p #"\s" ))) (clojure.string/split qt #"[\.\?\!]\s")))
+(defn get-first-word [qt]  (map (fn[p] (re-find #"(?:\'|\w)+" p )) (clojure.string/split qt #"[\.\?\!]\s")   ))
 (defn remove-once [vect item] (let [v (split-with #(not (= item %)) vect)] (concat (first v)(rest(second v)))))
 
 (def app
@@ -156,10 +155,10 @@
                      :body (form-body)})}
          :post {:parameters {:body {:quotetext string? :bad boolean?}}
                 :handler (fn  [{ {qt :quotetext bad :bad} :params }]
-                           (if bad
+                           (if bad ;"Bad" quote removes on instance of selected starter from collection
                              (if (> (count @starters) 1) (swap! starters
                                #(remove-once %  (first (get-first-word qt)))))
-                             (do
+                             (do ;"Good" quote adds first word of each sentence to starters and adds whole qt to input.
                               (swap! raw-food #(str % " " qt))
                               (swap! starters
                                #(concat %  (get-first-word qt)))))
