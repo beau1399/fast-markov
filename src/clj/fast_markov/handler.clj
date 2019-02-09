@@ -1,3 +1,4 @@
+;TODO - input must end with . - doc?
 ;Todo - escape for dots that don't mean full stop
 ;TODO - proper starters file, not what just happens to be checked in
 ;TODO - remove superfluous files from github
@@ -34,7 +35,7 @@
 (defn phrase-length []  (+ 4 (rand-int 3)))
 
 ;Turn quotations, floats (etc.?)  into atomic units that look like single words (to be undone in final output)
-;TODO these can really be in a file?
+;TODO these are tightly coupled with the final trim function and really don't belong in a file
 (def unit-finders (read-string (str "[" (slurp "units") "]")))
 
 ;Generates list of functions that replaces each string in snippets w/ its escaped and delimited value
@@ -46,8 +47,11 @@
 (defn unitize[find-func txt]
   ((apply comp (esc-functions (find-func txt))) txt))
 
-;Takes a regex and returns a function that finds all occurences of it in its parameter
-(defn find-units [regex] #(re-seq regex %))
+;Takes a regex and returns a function that finds all occurences of it in its parameter, excepting stuff that is
+; already in a unit.
+(defn find-units [regex]  (fn[p]
+                           (filter #(not (re-matches #"[^\s]+" %))
+                            (re-seq regex p))))
 
 ;Handles generation of units based on the unit-finders regex list
 ;(unitize-all txt)
@@ -61,17 +65,25 @@
 ; more specific cases first, and generally reduce ambiguity, e.g. removing dots that aren't full
 ; stops since they confuse meaning.
 (defn cook [p]  (-> p
-              (clojure.string/replace "\n" " ")
-              (unitize-all)                                  
-              (clojure.string/replace ". " " _DOT_ ")
-              (clojure.string/replace ", " " _COMMA_ ")
-              (clojure.string/replace "! " " _BANG_ ")
-              (clojure.string/replace "? " " _QUEST_ ")
-              ))
+                    (clojure.string/replace "\n" " ")                                        
+                    (clojure.string/replace "’" "'")
+                    (clojure.string/replace "”" "\"")
+                    (clojure.string/replace "“" "\"")
+                    (unitize-all)                                  
+                    (clojure.string/replace ". " " _DOT_ ")
+                    (clojure.string/replace ", " " _COMMA_ ")
+                    (clojure.string/replace "! " " _BANG_ ")
+                    (clojure.string/replace "? " " _QUEST_ ")
+                    ))
 
-;Make generated quote end with a .
+;Make generated quote end with a . and have balanced " and ( pairs
+;Issue with this is that it won't necessarily complete... need backstop for when p gets reduced to 0?
 (defn trim-quote [p]
-  (if (or (=(last p) \.)(=(last p) \?)(=(last p) \!)) (str p) (recur (clojure.string/join (take (dec (count p)) p)))))
+  (if (and     (= 0 (mod ((frequencies p) \" 0) 2))
+               (or (=(last p) \.)(=(last p) \?)(=(last p) \!))
+               (=  ((frequencies p) \( 0) ((frequencies p) \) 0)))
+
+    (str p) (recur (clojure.string/join (take (dec (count p)) p)))))
 
 (defn cleanup [p] (-> p
               (clojure.string/replace escaper  " ")
@@ -100,6 +112,7 @@
 ;(("think" "the" "most")("think" "the" "most")("don't" "have" "all")("know" "Dave" "has")("think" "it's" "important"))
 (defn words-for [p maps] (map #(second(first %)) (filter #(= (first (first %)) p) maps)))
 
+;Problems here if input ends with something that gets turned into an atom; input should end with dot or something like that
 ;>(pick-words "I")
 ;("think" "it's" "important" "for")
 (defn pick-words [p]

@@ -1,8 +1,13 @@
 ;Turn quotations, floats (etc.?)  into atomic units that look like single words (to be undone in final output)
 ;TODO these can really be in a file?
+
+
+#"\([^\)]*\)"              ;Parentheses
 #"\"[^\"]*\""              ;Quotations
-#"\s[A-Z][^\s]+\s+(?:of\s+|[A-Z][^\s]+\s+)+" ;Seqs. of capitalized words
+;#"\s[A-Z][^\s]+\s+(?:of\s+|[A-Z][^\s\.\?!]+\s+)+" ;Seqs. of capitalized words; grabs dots, etc. too much
 #"Dr\.\s"
+
+
 ;TODO PAREN PAIR REGEX
 
 
