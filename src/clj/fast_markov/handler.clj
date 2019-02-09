@@ -16,11 +16,11 @@
 ;TODO - 3 files: Lexer, Parser, and Web?
 ;TODO - apply to some realworld rough data and document
 ;TODO - build a github profile - sfp?
-
 (ns fast-markov.handler
   (:require 
   	    [reitit.ring.coercion :as rrc]
             [reitit.coercion.spec]
+            [fast-markov.language :as lang]
 	    [reitit.ring :as reitit-ring]
             [ring.middleware.session :refer [wrap-session]]
             [ring.middleware.session.memory :as memory]
@@ -33,10 +33,6 @@
 
 ;TODO can this be learned? List of seed + successful phrase-length values?
 (defn phrase-length []  (+ 4 (rand-int 3)))
-
-;Turn quotations, floats (etc.?)  into atomic units that look like single words (to be undone in final output)
-;TODO these are tightly coupled with the final trim function and really don't belong in a file
-(def unit-finders (read-string (str "[" (slurp "units") "]")))
 
 ;Generates list of functions that replaces each string in snippets w/ its escaped and delimited value
 (defn esc-functions[snippets]
@@ -56,7 +52,7 @@
 ;Handles generation of units based on the unit-finders regex list
 ;(unitize-all txt)
 ;"Then he said \"This!!-!!is!!-!!a!!-!!quote!\" with anger. But I got a!!-!!4.0!!-!!GPA!"
-(defn unitize-all [txt] ((apply comp (map (fn[p]  #(unitize (find-units p) %)) unit-finders)) txt))
+(defn unitize-all [txt] ((apply comp (map (fn[p]  #(unitize (find-units p) %)) lang/units)) txt))
 
 ; Use ## to join together words in ./input that shouldn't be separated e.g. Baton##Rouge? Is this the final design?
 (def raw-food (atom (slurp "input")))
@@ -76,15 +72,6 @@
                     (clojure.string/replace "? " " _QUEST_ ")
                     ))
 
-;Make generated quote end with a . and have balanced " and ( pairs
-;Issue with this is that it won't necessarily complete... need backstop for when p gets reduced to 0?
-(defn trim-quote [p]
-  (if (and     (= 0 (mod ((frequencies p) \" 0) 2))
-               (or (=(last p) \.)(=(last p) \?)(=(last p) \!))
-               (=  ((frequencies p) \( 0) ((frequencies p) \) 0)))
-
-    (str p) (recur (clojure.string/join (take (dec (count p)) p)))))
-
 (defn cleanup [p] (-> p
               (clojure.string/replace escaper  " ")
               (clojure.string/replace #"\s+" " ")                      
@@ -93,7 +80,7 @@
               (clojure.string/replace "##" " ")
               (clojure.string/replace " _BANG_" "!" )
               (clojure.string/replace " _QUEST_" "?")
-              (trim-quote)
+              (lang/validate-quote)
               ))
 
 ;> (group 3 [1 2 3 4 5 6])
