@@ -135,9 +135,15 @@
 (defn form-body []
   (html5 [:body [:form {:method "post"} [:textarea { :rows 12 :cols 150 :name "quotetext" }(make-quote)]
                                           [:br]
-                 [:input {:type "submit" :value "Submit Good Quote"} ]
+                 [:input {:type "checkbox" :name "bad"} "Bad Quote" ]
+                 [:br]
+                 [:input {:type "submit" :value "Submit Quote"} ]
                  [:button {:onclick  "location.href='/';event.preventDefault();"} "Get Another"]
+
                                           ](include-js "/js/app.js")]))
+(defn get-first-word [qt]  (map (fn[p] (first (clojure.string/split p #"\s" ))) (clojure.string/split qt #"[\.\?\!]\s")))
+(defn remove-once [vect item] (let [v (split-with #(not (= item %)) vect)] (concat (first v)(rest(second v)))))
+
 (def app
   (reitit-ring/ring-handler
    (reitit-ring/router
@@ -148,14 +154,17 @@
                     {:status 200
                      :headers {"Content-Type" "text/html"}
                      :body (form-body)})}
-         :post {:parameters {:body {:quotetext string?}}
-                :handler (fn  [{ {qt :quotetext} :params }]
-                           (swap! raw-food #(str % " " qt))
+         :post {:parameters {:body {:quotetext string? :bad boolean?}}
+                :handler (fn  [{ {qt :quotetext bad :bad} :params }]
+                           (if bad
+                             (if (> (count @starters) 1) (swap! starters
+                               #(remove-once %  (first (get-first-word qt)))))
+                             (do
+                              (swap! raw-food #(str % " " qt))
+                              (swap! starters
+                               #(concat %  (get-first-word qt)))))
                            (spit "input" @raw-food " " qt)
-                           (swap! starters
-                                  #(concat %                                          
-                                        (map (fn[p] (first (clojure.string/split p #"\s" ))) (clojure.string/split qt #"[\.\?\!]\s"))))
-                           (spit "starters"  (clojure.string/join "\n" @starters ))                           
+                           (spit "starters"  (clojure.string/join "\n" @starters ))
                            {:status 200
                             :headers {"Content-Type" "text/html"}
                             :body (form-body)})}}]]    
