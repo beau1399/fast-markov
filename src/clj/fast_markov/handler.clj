@@ -11,11 +11,8 @@
 ;TODO - quote modes: unitize, remove, generate/balance
 ;TODO - similar issue b/w quotes and parens?
 ;TODO - ultimately input file can be repalced by URL?
-;TODO - robust w/ respect to stray spaces /tabs /etc. e.g. in unit-finder stuff; maybe collapse double whitespace combos on file read?
-;TODO - ' quotations within double quote quotations - can be handled by ordering unitization regexes right? OR do they (and floats in quotes) just work naturally? Outermost unit will prevail as a unit, cleanup will make it all look nice. This is a good overall paradigm b.c it identifies parts of the input string that don't represent examples of the semantics of the thing we are trying to imitate. As long as these are blocked together in viral and ultimately presentable format (which not attempting to nest facilitates), the end goal is served.
 ;TODO - readme.md (x2) should note that this is a porpus project
 ;TODO - 3 files: Lexer, Parser, and Web?
-;TODO - apply to some realworld rough data and document
 ;TODO - build a github profile - sfp?
 (ns fast-markov.handler
   (:require 
@@ -88,7 +85,7 @@
 (defn group [n v] (group-inner n v []))
 
 ;(("I" "think" "the" "most") ("think" "the" "most" "important") ("the" "most" "important" "thing") ("most" "important" "thing" "is")...
-(defn word-groups [p] (group (phrase-length) (clojure.string/split p #" ")))
+(defn word-groups [p] (group (phrase-length) (clojure.string/split p #"\s+")))
 
 ;({"I" ("think" "the" "most")} {"I" ("also" "think" "that")}...
 (defn word-maps [p] (map (fn [x] {(first x)(rest x)}) p))
@@ -111,9 +108,15 @@
                  (map first (filter #(re-matches #"^[A-Z]{1}.*$" (first % ))(word-groups (cook @raw-food))))
                  (clojure.string/split (slurp "starters") #"\n"))))
 
+;A starter is a randomly selected word from the collection of words eligible to begin a generated quote
 (defn pick-starter [] (nth @starters (rand-int (count @starters))))
+
+;A phrase is a fragment consisting of a starter plus several words that have been found to follow it in
+; the text input into the Markov generator
 (defn phrase []  (let [x (pick-starter)]  (str x " " (pick-words x))))
 
+;Makes a phrase, and then adds Markov generated fragments to it until a minimum length requirement is
+; met, and at least one period is present in the output. This is then passed through "cleanup" for presentation
 (defn make-quote
   ([] (make-quote (phrase)))
   ([p] (let [s (str p " " (pick-words (last(clojure.string/split p #"\s")))) lword (last(clojure.string/split s #"\s"))]
@@ -133,10 +136,10 @@
 (defn form-body []
   (html5 [:body [:form {:method "post"} [:textarea { :rows 12 :cols 150 :name "quotetext" }(make-quote)]
                                           [:br]
-                 [:input {:type "checkbox" :name "bad"} "Bad Quote" ]
-                 [:br]
-                 [:input {:type "submit" :value "Submit Quote"} ]
-                 [:button {:onclick  "location.href='/';event.preventDefault();"} "Get Another"]
+                 [:input {:type "checkbox" :name "bad" :id "bad" :style "display:none" }]                 
+                 [:button {:type "submit" :onclick "fast_markov.core.make_good_quote()"} "Good Quote"]
+                 [:button {:type "submit" :onclick "fast_markov.core.make_bad_quote()"} "Bad Quote"]
+                 [:button {:type "button" :onclick "fast_markov.core.get_new_quote()"} "Get Another"]
 
                                           ](include-js "/js/app.js")]))
 ;(defn get-first-word [qt]  (map (fn[p] (first (clojure.string/split p #"\s" ))) (clojure.string/split qt #"[\.\?\!]\s")))
