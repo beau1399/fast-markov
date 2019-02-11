@@ -1,3 +1,7 @@
+;
+; TODO - ultimate test is repeated "submit good quote" via GUI
+;
+
 ;DOC expectations e.g. space follows . ? or !
 ;DOC - two approaches to "Starters": rm file and prune down large starter set vs. start w/ simple man'ly created file (The, I, A... must be in file)
 ;TODO - input must end with . - doc?
