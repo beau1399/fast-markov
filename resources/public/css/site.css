@@ -9,6 +9,22 @@
   line-height: 1.5em;
 }
 
+body{
+    background-color:black;
+    color:gold;
+    font-size:26px;
+}
+
+textarea{
+    background-color:black;
+    color:gold;
+    font-size:26px;
+}
+
+span{
+    display:inline-block;
+    margin: 6% 24% 0 12%;
+}
 h1, h2, h3 {
   color: #000;
 }

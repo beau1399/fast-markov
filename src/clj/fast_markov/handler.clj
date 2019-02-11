@@ -1,3 +1,5 @@
+;DOC expectations e.g. space follows . ? or !
+;DOC - two approaches to "Starters": rm file and prune down large starter set vs. start w/ simple man'ly created file (The, I, A... must be in file)
 ;TODO - input must end with . - doc?
 ;Todo - escape for dots that don't mean full stop
 ;TODO - starters can be built around get-first-word? Obstacle is encoded vs. un-encoded.
@@ -27,14 +29,27 @@
             [hiccup.page :refer [include-js include-css html5]]
             [config.core :refer [env]]))
 (def target-length 200)
-(def escaper  "~~@") ;Used to stand for whitespace within units identified by regex; will be replaced by space
+
+;In strings that get turned into units according to the logic in language.clj, this is accomplished by removing
+; temporarily anything that has significance to the fast-markov lexer, i.e. spaces and dots.
+(def escaper-space  "~~@") ;Used to stand for whitespace within units identified by regex; will be replaced by space
+(def escaper-dot  "~~*") ;Used to stand for whitespace within units identified by regex; will be replaced by space
 
 ;TODO can this be learned? List of seed + successful phrase-length values?
 (defn phrase-length []  (+ 4 (rand-int 3)))
 
 ;Generates list of functions that replaces each string in snippets w/ its escaped and delimited value
 (defn esc-functions[snippets]
-  (map (fn[p] #(clojure.string/replace % p  (str " " (clojure.string/.replace p  " " escaper) " ")))snippets))
+  (map
+
+   (fn[p]
+     #(clojure.string/replace % p
+                                       (str " " (clojure.string/.replace
+                                                 (clojure.string/.replace p  " " escaper-space) "." escaper-dot) " "))
+     )
+
+
+       snippets))
 
 ;Accepts txt and a function that identifies a set of units in txt and escapes/delimits all those units comprehensively
 ; using esc-functions 
@@ -56,6 +71,7 @@
 (def raw-food (atom (slurp "input")))
 
 (defn cook [p]  (-> p
+                    (str p " ") ;So that final . ! or ? will be detected properly as a sentence-end
                     (clojure.string/replace "\n" " ")                                        
                     (clojure.string/replace "’" "'")
                     (clojure.string/replace "”" "\"")
@@ -68,7 +84,7 @@
                     ))
 
 (defn cleanup [p] (-> p
-              (clojure.string/replace escaper  " ")
+              (clojure.string/replace escaper-space  " ")
               (clojure.string/replace #"\s+" " ")                      
               (clojure.string/replace " _DOT_"  ".")
               (clojure.string/replace " _COMMA_" ",")
@@ -76,6 +92,7 @@
               (clojure.string/replace " _BANG_" "!" )
               (clojure.string/replace " _QUEST_" "?")
               (lang/validate-quote)
+              (clojure.string/replace escaper-dot ".")              
               ))
 
 ;> (group 3 [1 2 3 4 5 6])
@@ -98,6 +115,7 @@
 ;>(pick-words "I")
 ;("think" "it's" "important" "for")
 (defn pick-words [p]
+;  (println (str "->" p "<-"))
   (let [options (words-for p (word-maps (word-groups (cook @raw-food))))] 
      (clojure.string/join " "(nth options (rand-int (count options))))))
 
@@ -119,7 +137,9 @@
 ; met, and at least one period is present in the output. This is then passed through "cleanup" for presentation
 (defn make-quote
   ([] (make-quote (phrase)))
-  ([p] (let [s (str p " " (pick-words (last(clojure.string/split p #"\s")))) lword (last(clojure.string/split s #"\s"))]
+  ([p]
+   ;(println (str "*" p  "*"))
+   (let [s (str p " " (pick-words (last(clojure.string/split p #"\s")))) lword (last(clojure.string/split s #"\s"))]
      (if (and (not (nil? (re-matches #"(?s)^.*_DOT_.*$" s)))    (>= (count s) target-length)) 
        (cleanup s)
        (recur s)))))
@@ -134,7 +154,7 @@
    (include-css (if (env :dev) "/css/site.css" "/css/site.min.css"))])
 
 (defn form-body []
-  (html5 [:body [:form {:method "post"} [:textarea { :rows 12 :cols 150 :name "quotetext" }(make-quote)]
+  (html5 (head) [:body [:form {:method "post"} [:textarea { :rows 12 :cols 80 :name "quotetext" }(make-quote)]
                                           [:br]
                  [:input {:type "checkbox" :name "bad" :id "bad" :style "display:none" }]                 
                  [:button {:type "submit" :onclick "fast_markov.core.make_good_quote()"} "Good Quote"]
@@ -155,6 +175,14 @@
          :handler (fn [stuff]
                     {:status 200
                      :headers {"Content-Type" "text/html"}
+                     :body
+                       (html5 (head) [:body  [:span (make-quote)]
+                                          (include-js "/js/app.js")])})}}]
+     ["/learn"
+        {:get {
+         :handler (fn [stuff]
+                    {:status 200
+                     :headers {"Content-Type" "text/html"}
                      :body (form-body)})}
          :post {:parameters {:body {:quotetext string? :bad boolean?}}
                 :handler (fn  [{ {qt :quotetext bad :bad} :params }]
@@ -169,7 +197,10 @@
                            (spit "starters"  (clojure.string/join "\n" @starters ))
                            {:status 200
                             :headers {"Content-Type" "text/html"}
-                            :body (form-body)})}}]]    
+                            :body (form-body)})}}]
+
+
+     ]    
     {:data {:middleware (concat [[wrap-session {:store store}]] middleware) }})
     (reitit-ring/routes
      (reitit-ring/create-resource-handler {:path "/" :root "/public"})

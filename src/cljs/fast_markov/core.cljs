@@ -3,4 +3,4 @@
 
 (defn ^:export make-bad-quote [] (set! (.-checked (.getElementById js/document "bad"))true))
 (defn ^:export make-good-quote [] (set! (.-checked (.getElementById js/document "bad"))false))
-(defn ^:export get-new-quote []  (set! (.-href (.-location js/document))"/"))
+(defn ^:export get-new-quote []  (set! (.-href (.-location js/document))"/learn"))

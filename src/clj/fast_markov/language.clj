@@ -1,6 +1,7 @@
 (ns fast-markov.language)
 
 (defn validate-quote [p]
+;  (println p)
       ;Until quote is valid English...
   (if (and     (= 0 (mod ((frequencies p) \" 0) 2))
                (or (=(last p) \.)(=(last p) \?)(=(last p) \!))
@@ -13,5 +14,8 @@
 (def units[
  #"\([^\)]*\)"              ;Parentheses
  #"\"[^\"]*\""              ;Quotations
+
+ ;Unitizing these keeps the dot from getting treated as a period          
  #"Dr\.\s"
+ #"Sen\.\s"
 ])
