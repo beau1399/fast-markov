@@ -115,7 +115,7 @@
 ;>(pick-words "I")
 ;("think" "it's" "important" "for")
 (defn pick-words [p]
-;  (println (str "->" p "<-"))
+  (println (str "->" p "<-"))
   (let [options (words-for p (word-maps (word-groups (cook @raw-food))))] 
      (clojure.string/join " "(nth options (rand-int (count options))))))
 
@@ -190,7 +190,7 @@
                              (if (> (count @starters) 1) (swap! starters
                                #(remove-once %  (first (get-first-word qt)))))
                              (do ;"Good" quote adds first word of each sentence to starters and adds whole qt to input.
-                              (swap! raw-food #(str % " " qt))
+                              (swap! raw-food #(str % " " qt " ")) ;trailing quote ensures terminal punction gets translated e.g. to _DOT_
                               (swap! starters
                                #(concat %  (get-first-word qt)))))
                            (spit "input" @raw-food " " qt)
