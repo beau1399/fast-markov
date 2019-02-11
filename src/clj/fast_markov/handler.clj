@@ -161,7 +161,12 @@
                  [:button {:type "submit" :onclick "fast_markov.core.make_bad_quote()"} "Bad Quote"]
                  [:button {:type "button" :onclick "fast_markov.core.get_new_quote()"} "Get Another"]
 
-                                          ](include-js "/js/app.js")]))
+                        ](include-js "/js/app.js")]))
+
+;This is a source of error. Original error discovered was Student-Athletes... getting turned into
+; "Student" as a starter. Still have my suspicions about how this relates to values of qt that, for
+; example, start with a quote or parenthetical phrase. Best approach might be to make sure each returned
+; value actually can be passed into pick-words with a non-null result. Outermost filter as a sanity check.
 (defn get-first-word [qt]  (map (fn[p] (first (clojure.string/split p #"(\s|\.|\?|!)" ))) (clojure.string/split qt #"[\.\?\!]\s")))
 ;(defn get-first-word [qt]  (map (fn[p] (re-find #"(?:\'|\w)+" p )) (clojure.string/split qt #"[\.\?\!]\s")   ))
 (defn remove-once [vect item] (let [v (split-with #(not (= item %)) vect)] (concat (first v)(rest(second v)))))

@@ -1,5 +1,7 @@
 (ns fast-markov.language)
 
+
+;TODO will this always complete??
 (defn validate-quote [p]
 ;  (println p)
       ;Until quote is valid English...
