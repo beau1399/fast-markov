@@ -1,7 +1,7 @@
 (ns fast-markov.language)
 
 
-;TODO will this always complete??
+;TODO will this always complete?? Potential remedy: last characters can be .", ?", !" etc.?
 (defn validate-quote [p]
 ;  (println p)
       ;Until quote is valid English...
