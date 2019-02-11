@@ -162,8 +162,8 @@
                  [:button {:type "button" :onclick "fast_markov.core.get_new_quote()"} "Get Another"]
 
                                           ](include-js "/js/app.js")]))
-;(defn get-first-word [qt]  (map (fn[p] (first (clojure.string/split p #"\s" ))) (clojure.string/split qt #"[\.\?\!]\s")))
-(defn get-first-word [qt]  (map (fn[p] (re-find #"(?:\'|\w)+" p )) (clojure.string/split qt #"[\.\?\!]\s")   ))
+(defn get-first-word [qt]  (map (fn[p] (first (clojure.string/split p #"(\s|\.|\?|!)" ))) (clojure.string/split qt #"[\.\?\!]\s")))
+;(defn get-first-word [qt]  (map (fn[p] (re-find #"(?:\'|\w)+" p )) (clojure.string/split qt #"[\.\?\!]\s")   ))
 (defn remove-once [vect item] (let [v (split-with #(not (= item %)) vect)] (concat (first v)(rest(second v)))))
 
 (def app
