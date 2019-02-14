@@ -9,7 +9,7 @@
        ;;Balanced parentheses
        (=  ((frequencies p) \( 0) ((frequencies p) \) 0)))(str p)
       ;;...Remove a character from the end
-      (recur (clojure.string/join (take (dec (count p)) p)))))
+      (recur (clojure.string/join (butlast p)))))
 
 ;;; RegExs defining strings that will be treated as units in spite of spaces contained
 (def units[
