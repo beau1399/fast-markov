@@ -16,8 +16,6 @@
    [reitit.ring :as reitit-ring]
    [clojure.java.io :as io]
    [clojure.string :as str]
-;   [ring.middleware.session :refer [wrap-session]]   
-;   [ring.middleware.session.memory :as memory]   
    [fast-markov.middleware :refer [middleware]]
    [hiccup.page :refer [include-js include-css html5]]
    [config.core :refer [env]]))
@@ -102,11 +100,12 @@
 (defn word-groups [p] (group (phrase-length) (str/split p #"\s+")))
 
 ;;;({"I" ("think" "the" "most")} {"I" ("also" "think" "that")}...
-(defn word-maps [p] (map (fn [x] {(first x)(rest x)}) p))
+(defn word-maps [p] (map (fn [x] (cons (first x)(rest x))) p))
 
 ;;;>(words-for "I")
 ;;; (("think" "the" "most")("think" "the" "most")("don't" "have" "all")("know" "Dave" "has")("think" "it's" "important"))
-(defn words-for [word maps] (map #(second(first %)) (filter #(= (first (first %)) word) maps)))
+;;;(defn words-for [word maps] (map #(second(first %)) (filter #(= (first (first %)) word) maps)))
+(defn words-for [word maps] (map rest (filter #(= (first %) word ) maps)))
 
 ;;;Gets the next fragment to follow up the word passed as parameter, per the Markov chain.
 ;;;(pick-words "I")
@@ -142,8 +141,6 @@
      (if (and (not (nil? (re-matches #"(?s)^.*_DOT_.*$" s)))    (>= (count s) target-length)) 
        (cleanup s)
        (recur s)))))
-
-;;;(def store (memory/memory-store))
 
 ;;;Head for all pages served up.
 (defn head []
@@ -210,7 +207,6 @@
                           :body (form-body)})}}]
      ]    
     
-                                        ;   {:data {:middleware (concat [[wrap-session {:store store}]] middleware) }})
    {:data {:middleware middleware }})    
    (reitit-ring/routes
     (reitit-ring/create-resource-handler {:path "/" :root "/public"})
