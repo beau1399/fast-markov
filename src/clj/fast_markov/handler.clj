@@ -16,6 +16,8 @@
    [reitit.ring :as reitit-ring]
    [clojure.java.io :as io]
    [clojure.string :as str]
+;   [ring.middleware.session :refer [wrap-session]]   
+;   [ring.middleware.session.memory :as memory]   
    [fast-markov.middleware :refer [middleware]]
    [hiccup.page :refer [include-js include-css html5]]
    [config.core :refer [env]]))
@@ -141,6 +143,8 @@
        (cleanup s)
        (recur s)))))
 
+;;;(def store (memory/memory-store))
+
 ;;;Head for all pages served up.
 (defn head []
   [:head
@@ -205,7 +209,9 @@
                           :headers {"Content-Type" "text/html"}
                           :body (form-body)})}}]
      ]    
-    )
+    
+                                        ;   {:data {:middleware (concat [[wrap-session {:store store}]] middleware) }})
+   {:data {:middleware middleware }})    
    (reitit-ring/routes
     (reitit-ring/create-resource-handler {:path "/" :root "/public"})
     (reitit-ring/create-default-handler))))
