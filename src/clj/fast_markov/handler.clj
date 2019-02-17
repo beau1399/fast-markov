@@ -14,8 +14,6 @@
    [reitit.coercion.spec]
    [fast-markov.language :as lang]
    [reitit.ring :as reitit-ring]
-;   [ring.middleware.session :refer [wrap-session]]
-;   [ring.middleware.session.memory :as memory]
    [clojure.java.io :as io]
    [clojure.string :as str]
    [fast-markov.middleware :refer [middleware]]
@@ -52,17 +50,18 @@
   ((apply comp (esc-functions (find-func txt))) txt))
 
 ;;;Takes a regex and returns a function that finds all occurences of it in its
-;;; parameter, excepting stuff that is already in a unit.
+;;; parameter, excepting stuff that is already in a unit (i.e. devoid of white
+;;; space).
 (defn find-units [regex] (fn[p]
                            (filter #(not (re-matches #"[^\s]+" %))
                                    (re-seq regex p))))
 
 ;;;Handles generation of units based on the unit-finders regex list
 ;;;(unitize-all txt)
-;;;"Then he said \"This!!-!!is!!-!!a!!-!!quote!\" with anger. But I got a!!-!!4.0!!-!!GPA!"
+;;;"Then Dr~~*~~@ Smith said \"This~~@is~~@a~~@quote!\" with anger." 
 (defn unitize-all [txt] ((apply comp (map (fn[p]  #(unitize (find-units p) %)) lang/units)) txt))
 
-;;; Use ## to join together words in ./input that shouldn't be separated e.g. Baton##Rouge? Is this the final design?
+;;; Use ## to join together words in ./input that shouldn't be separated e.g. Baton##Rouge?
 (def raw-food (atom (slurp "input")))
 
 (defn cook [p]  (-> p
@@ -92,9 +91,10 @@
 
 ;;;> (group 3 [1 2 3 4 5 6])
 ;;;((6) (5 6) (4 5 6) (3 4 5) (2 3 4) (1 2 3))
-(defn group-inner
-  [n v prod] (let [frag (take n v) rem (drop n v) pr (cons frag prod) ] (if (= (count frag) 0) prod (recur n (rest v) pr))))
-(defn group [n v] (group-inner n v []))
+(defn group-inner[num collect product]
+  (let [fragment (take num collect) pr (cons fragment product) ]
+    (if (= (count fragment) 0) product (recur num (rest collect) pr))))
+(defn group [num collect] (group-inner num collect []))
 
 ;;;(("I" "think" "the" "most") ("think" "the" "most" "important") ("the" "most" "important" "thing") ("most" "important" "thing" "is")...
 (defn word-groups [p] (group (phrase-length) (str/split p #"\s+")))
@@ -104,32 +104,35 @@
 
 ;;;>(words-for "I")
 ;;; (("think" "the" "most")("think" "the" "most")("don't" "have" "all")("know" "Dave" "has")("think" "it's" "important"))
-(defn words-for [p maps] (map #(second(first %)) (filter #(= (first (first %)) p) maps)))
+(defn words-for [word maps] (map #(second(first %)) (filter #(= (first (first %)) word) maps)))
 
-;;;Problems here if input ends with something that gets turned into an atom; input should end with dot or something like that
+;;;Gets the next fragment to follow up the word passed as parameter, per the Markov chain.
 ;;;(pick-words "I")
 ;;; ("think" "it's" "important" "for")
-(defn pick-words [p]
-  (let [options (words-for p (word-maps (word-groups (cook @raw-food))))]
+(defn pick-words [word]
+  (let [options (words-for word (word-maps (word-groups (cook @raw-food))))]
     (if (>  (count options) 0)
-      (str/join " "(nth options (rand-int (count options)))) nil  )   ))
+      (str/join " "(nth options (rand-int (count options)))) nil  )))
 
-;;;("I" "I" "I" "Dave" "But" "I've" "I")
+;;;Either 1) the contents of file "starters" or 2) all the words in the text
+;;; input that start sentences. Defines the set of words that can start a
+;;; generated quote.
 ;;;(defn starters [] (map first (filter #(re-matches #"^[A-Z]{1}.*$" (first % ))(word-groups (cook @raw-food)) )))
 (def starters (atom
                (if (not (.exists (io/as-file "starters")))
                  (map first (filter #(re-matches #"^[A-Z]{1}.*$" (first % ))(word-groups (cook @raw-food))))
                  (str/split (slurp "starters") #"\n"))))
 
-;;;A starter is a randomly selected word from the collection of words eligible to begin a generated quote
+;;;A starter is a randomly selected word from the collection of words eligible to begin a generated quote.
 (defn pick-starter [] (nth @starters (rand-int (count @starters))))
 
 ;;;A phrase is a fragment consisting of a starter plus several words that have been found to follow it in
-;;; the text input into the Markov generator
+;;; the text input into the Markov generator.
 (defn phrase []  (let [x (pick-starter)]  (str x " " (pick-words x))))
 
 ;;;Makes a phrase, and then adds Markov generated fragments to it until a minimum length requirement is
-;;; met, and at least one period is present in the output. This is then passed through "cleanup" for presentation
+;;; met, and at least one period is present in the output. This is then passed through "cleanup" for
+;;; presentation
 (defn make-quote
   ([] (make-quote (phrase)))
   ([p] 
@@ -138,8 +141,7 @@
        (cleanup s)
        (recur s)))))
 
-;;(def store (memory/memory-store))
-
+;;;Head for all pages served up.
 (defn head []
   [:head
    [:meta {:charset "utf-8"}]
@@ -160,11 +162,13 @@
 
                         ](include-js "/js/app.js")]))
 
-;;;Return all of the sentence-starters in qt that actually have markov-generated successors.
-(defn get-first-word [qt]
+;;;Return all of the sentence-starters in quot that actually have markov-generated successors.
+;;; Used to get "good" candidates for inclusion in the starters collection when learning.
+(defn get-first-word [quot]
   (filter #(not (nil? (pick-words %)))
-          (map (fn[p] (first (str/split p #"(\s|\.|\?|!)" ))) (str/split qt #"[\.\?\!]\s"))))
+          (map (fn[p] (first (str/split p #"(\s|\.|\?|!)" ))) (str/split quot #"[\.\?\!]\s"))))
 
+;;;Remove once occurrence of "item" from "vect"
 (defn remove-once [vect item] (let [v (split-with #(not (= item %)) vect)] (concat (first v)(rest(second v)))))
 
 ;;;Routing map; typical Reitit / Porpus code for that
@@ -201,8 +205,6 @@
                           :headers {"Content-Type" "text/html"}
                           :body (form-body)})}}]
      ]    
-    ;;{:data {:middleware (concat [[wrap-session {:store store}]] middleware) }}
-
     )
    (reitit-ring/routes
     (reitit-ring/create-resource-handler {:path "/" :root "/public"})
