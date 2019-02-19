@@ -17,5 +17,7 @@
            #"\"[^\"]*\""              ;Quotations
            ;;Unitizing these next 2 keeps the dot from getting treated as a period          
            #"Dr\.\s"
+           #"Mr\.\s"
+           #"Mrs\.\s"
            #"Sen\.\s"
            ])

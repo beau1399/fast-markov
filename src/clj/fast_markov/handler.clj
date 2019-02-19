@@ -107,11 +107,17 @@
 ;;;(defn words-for [word maps] (map #(second(first %)) (filter #(= (first (first %)) word) maps)))
 (defn words-for [word maps] (map rest (filter #(= (first %) word ) maps)))
 
+(defn make-freq-data [rf]  (word-maps (word-groups (cook rf))))
+
+;;;This one was originally expressed as a pure function call, but that involved a lot of
+;;; redundant work.
+(def freq-data (atom (make-freq-data @raw-food)))
+
 ;;;Gets the next fragment to follow up the word passed as parameter, per the Markov chain.
 ;;;(pick-words "I")
 ;;; ("think" "it's" "important" "for")
 (defn pick-words [word]
-  (let [options (words-for word (word-maps (word-groups (cook @raw-food))))]
+  (let [options (words-for word @freq-data )]
     (if (>  (count options) 0)
       (str/join " "(nth options (rand-int (count options)))) nil  )))
 
@@ -198,6 +204,7 @@
                                                               #(remove-once %  (first (get-first-word qt)))))
                            (do ;"Good" quote adds first word of each sentence to starters and adds whole qt to input.
                              (swap! raw-food #(str % " " qt " ")) ;trailing quote ensures terminal punction gets translated e.g. to _DOT_
+                             (reset! freq-data (make-freq-data @raw-food))
                              (swap! starters
                                     #(concat %  (get-first-word qt)))))
                          (spit "input" @raw-food " " qt)
