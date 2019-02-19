@@ -15,7 +15,7 @@
 (def units[
            #"\([^\)]*\)"              ;Parentheses
            #"\"[^\"]*\""              ;Quotations
-           ;;Unitizing these next 2 keeps the dot from getting treated as a period          
+           ;;Unitizing these next few keeps the dot from getting treated as a period          
            #"Dr\.\s"
            #"Mr\.\s"
            #"Mrs\.\s"
