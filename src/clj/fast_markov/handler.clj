@@ -1,5 +1,4 @@
 ;;;TODO - recomment post-length-learning
-;;;TODO - still need to do something to handle things like 3.14
 ;;;TODO - config file, including byline and constants
 ;;;TODO - ultimate test is repeated "submit good quote" via GUI
 ;;;DOC expectations e.g. space follows . ? or !
