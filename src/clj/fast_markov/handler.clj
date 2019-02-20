@@ -130,9 +130,10 @@
 ;;; input that start sentences. Defines the set of words that can start a
 ;;; generated quote.
 (def starters (atom
-;TODO               (if (not (.exists (io/as-file "starters")))
-;                 (filter #(re-matches #"^[A-Z]{1}.*$" % ) (str/split (cook @raw-food)#" "))
-                 (str/split (slurp "starters") #"\n")))
+               (if (not (.exists (io/as-file "starters")))
+                 (map #(first (str/split % #"\s"))(str/split (cook @raw-food)
+                                                             #"(_DOT_\s|_QUEST_\s|_BANG_\s)"))
+                 (str/split (slurp "starters") #"\n"))))
 
 ;;;A starter is a randomly selected word from the collection of words eligible to begin a generated quote.
 (defn pick-starter [] (nth @starters (rand-int (count @starters))))
