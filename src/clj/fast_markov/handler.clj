@@ -25,6 +25,8 @@
 ;;; for example.
 (def target-length 200)
 
+(def byline (slurp "byline"))
+
 ;;;In strings that get turned into units according to the logic in language.clj,
 ;;; this is accomplished by removing temporarily anything that has significance
 ;;; to the fast-markov lexer, i.e. spaces and dots.
@@ -189,7 +191,7 @@
                         {:status 200
                          :headers {"Content-Type" "text/html"}
                          :body
-                         (html5 (head) [:body  [:span (make-quote)]
+                         (html5 (head) [:body  [:span (make-quote)[:br][:span byline]]
                                         (include-js "/js/app.js")])})}}]
      ["/learn"
       {:get {
