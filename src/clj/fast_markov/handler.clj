@@ -1,14 +1,12 @@
 ;;;TODO - recomment post-length-learning
 ;;;TODO - config file, including byline and constants
-;;;TODO - ultimate test is repeated "submit good quote" via GUI
-;;;DOC expectations e.g. space follows . ? or !
+;;;DOC expectations e.g. space follows . ? or !, balanced quotes, etc.
 ;;;DOC - two approaches to "Starters": rm file and prune down large set vs. start w/ simple man'ly created file (The, I, A... must be in file)
 ;;;TODO - input must end with . - doc? (No, shouldn't end with a word that doesn't occur elsewhere)
-;;;Todo - escape for dots that don't mean full stop
 ;;;TODO - starters can be built around get-first-word? Obstacle is encoded vs. un-encoded.
 ;;;TODO - readme.md (x2) should note that this is a porpus project
-;;;TODO - 3 files: Lexer, Parser, and Web?
-;;;TODO - build a github profile - sfp?
+;;;TODO - build a github profile - sfp? maze stuff?
+;;;TODO _DOT_ etc. should be constants
 
 (ns fast-markov.handler
   (:require 
@@ -31,11 +29,11 @@
 ;;;In strings that get turned into units according to the logic in language.clj,
 ;;; this is accomplished by removing temporarily anything that has significance
 ;;; to the fast-markov lexer, i.e. spaces and dots.
-(def escaper-space  "~~@") ;Temp. whitespace marker in units defined in language.clj
-(def escaper-dot  "~~*")   ;Similar, but for dots (lest they get treated as periods)
+(def escaper-space "~~@") ;Temp. whitespace marker in units defined in language.clj
+(def escaper-dot "~~*")   ;Similar, but for dots (lest they get treated as periods)
 
 ;;;How big are the fragments used to make quotes? This is learned and stored in a
-;;; file.
+;;; file. It defaults to 2 through 9 if the file is not present.
 (def lengths (atom
                (if (not (.exists (io/as-file "lengths")))
                 (range 2 10)
@@ -71,6 +69,7 @@
 ;;; Use ## to join together words in ./input that shouldn't be separated e.g. Baton##Rouge?
 (def raw-food (atom (slurp "input")))
 
+;;; This is essentially a lexer.
 (defn cook [p]  (-> p
                     (str p " ") ;So that final . ! or ? will be detected properly as a sentence-end
                     (str/replace "\n" " ")                                        
@@ -84,6 +83,7 @@
                     (str/replace "? " " _QUEST_ ")
                     ))
 
+;;; Presentation: undo lexer escaping, and also ensure validity per language.clj
 (defn cleanup [p] (-> p
                       (str/replace escaper-space  " ")
                       (str/replace #"\s+" " ")                      
@@ -103,7 +103,8 @@
     (if (= (count fragment) 0) product (recur num (rest collect) pr))))
 (defn group [num collect] (group-inner num collect []))
 
-;;;(("I" "think" "the" "most") ("think" "the" "most" "important") ("the" "most" "important" "thing") ("most" "important" "thing" "is")...
+;;;Makes something like this:
+;;; (("I" "think" "the" "most") ("think" "the" "most" "important") ("the" "most" "important" "thing") ("most" "important" "thing" "is")...
 (defn word-groups [p len] (group len (str/split p #"\s+")))
 
 ;;;(("I" "think" "the" "most") ("I" "also" "think" "that")...
@@ -114,10 +115,11 @@
 ;;;(defn words-for [word maps] (map #(second(first %)) (filter #(= (first (first %)) word) maps)))
 (defn words-for [word maps] (map rest (filter #(= (first %) word ) maps)))
 
+;;;;Invokes word-maps, etc. from above.
 (defn freq-data [len]  (word-maps (word-groups (cook @raw-food) len )))
 
 ;;;Gets the next fragment to follow up the word passed as parameter, per the Markov chain.
-;;;(pick-words "I")
+;;;(pick-words "I" 5)
 ;;; ("think" "it's" "important" "for")
 (defn pick-words [word len]
   (let [options (words-for word (freq-data len ))]
@@ -201,7 +203,7 @@
              :handler (fn [stuff]
                         {:status 200
                          :headers {"Content-Type" "text/html"}
-                                 :body       (form-body)})}
+                                 :body (form-body)})}
        :post {:parameters {:body {:quotetext string? :bad boolean? :phraselen int?}}
               :handler (fn  [{ {qt :quotetext bad :bad phraselen :phraselen} :params }]
                          (when bad ;"Bad" quote removes on instance of selected starter from collection
