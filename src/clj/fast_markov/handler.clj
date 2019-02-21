@@ -1,6 +1,6 @@
+;;;TODO - doc parallelism implications
 ;;;TODO - phrase length gets "stuck" if reduced to single value
 ;;;TODO - quickly submitting can result in bad/good not getting set
-;;;TODO - recomment post-length-learning
 ;;;TODO - config file, including byline and constants
 ;;;DOC expectations e.g. space follows . ? or !, balanced quotes, etc.
 ;;;DOC - two approaches to "Starters": rm file and prune down large set vs. start w/ simple man'ly created file (The, I, A... must be in file)
@@ -171,7 +171,7 @@
                         [:button {:type "submit" :onclick "fast_markov.core.make_good_quote()"} "Good Quote"]
                         [:button {:type "submit" :onclick "fast_markov.core.make_bad_quote()"} "Bad Quote"]
                         [:button {:type "button" :onclick "fast_markov.core.get_new_quote()"} "Get Another"]
-                        [:input {:value len :name "phraselen"}] ; :type "hidden"}]
+                        [:input {:value len :name "phraselen" :type "hidden"}]
                         ](include-js "/js/app.js")])))
 
 ;;;Return all of the sentence-starters in quot that actually have markov-generated successors.
