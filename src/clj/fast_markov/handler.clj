@@ -203,26 +203,29 @@
                          :headers {"Content-Type" "text/html"}
                                  :body (form-body)})}
        :post {:parameters {:body {:quotetext string? :bad boolean? :phraselen int?}}
-              :handler (fn  [{ {qt :quotetext bad :bad phraselen :phraselen} :params }]
+              :handler (fn  [{ {qt :quotetext bad :bad pl :phraselen} :params }]
+                         (let [phraselen (read-string pl)
+                               data  (freq-data phraselen)
+                               ] ;Infrastructure checks but does not convert to int
                          (if bad (do ;"Bad" quote removes on instance of selected starter from collection
                            (if (> (count @starters) 1) (swap! starters
-                                                              #(remove-once %  (first (get-first-word qt  (freq-data (read-string phraselen) )))))) ;OPTIMIZE TODO
+                                                              #(remove-once %  (first (get-first-word qt data))))) 
                            (if (> (count @lengths) 1) (swap! lengths
-                                                             #(remove-once % (read-string phraselen))))) ;;;TODO too many read-strings on this one
+                                                             #(remove-once % phraselen)))) ;;;TODO too many read-strings on this one
 
                            (do ;"Good" quote adds first word of each sentence to starters and adds whole qt to input.
                              (swap! raw-food #(str % " " qt " ")) ;trailing quote ensures terminal punction gets translated e.g. to _DOT_
                              (swap! starters
-                                    #(concat % (get-first-word qt  (freq-data (read-string phraselen))))) ;OPTIMIZE TODO
+                                    #(concat % (get-first-word qt data))) ;OPTIMIZE TODO
                              (swap! lengths
-                                    #(conj % (read-string phraselen))) ;Need read-string; param was checked but not converted above
+                                    #(conj % phraselen)) ;Need read-string; param was checked but not converted above
                              ))
                          (spit "input" @raw-food " " qt)
                          (spit "starters" (str/join "\n" @starters))
                          (spit "lengths" (str/join "\n" @lengths))
                          {:status 200
                           :headers {"Content-Type" "text/html"}
-                          :body (form-body)})}}]
+                          :body (form-body)}))}}]
      ]
     
    {:data {:middleware middleware }})    
