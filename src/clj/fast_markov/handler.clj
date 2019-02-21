@@ -25,17 +25,11 @@
 
 (def byline (slurp "byline"))
 
-;;;In strings that get turned into units according to the logic in language.clj,
-;;; this is accomplished by removing temporarily anything that has significance
-;;; to the fast-markov lexer, i.e. spaces and dots.
-(def escaper-space "~~@") ;Temp. whitespace marker in units defined in language.clj
-(def escaper-dot "~~*")   ;Similar, but for dots (lest they get treated as periods)
-
 ;;;How big are the fragments used to make quotes? This is learned and stored in a
-;;; file. It defaults to 2 through 9 if the file is not present.
+;;; file. It defaults to a range configured in contants.clj is the file isn't found.
 (def lengths (atom
                (if (not (.exists (io/as-file "lengths")))
-                (range 2 10)
+                (range const/min-phrase const/max-phrase)
                 (map read-string (str/split (slurp "lengths") #"\n")))))
 (defn phrase-length [] (nth @lengths (rand-int (count @lengths))))
 
@@ -45,7 +39,7 @@
 (defn esc-functions[snippets]
   (map
    (fn[p] #(str/replace % p (str " " (str/.replace
-                                      (str/.replace p  " " escaper-space) "." escaper-dot) " ")))
+                                      (str/.replace p  " " const/escaper-space) "." const/escaper-dot) " ")))
    snippets))
 
 ;;;Applies esc-functions (above) to a string of text to unitize it per the
@@ -61,7 +55,7 @@
                                    (re-seq regex p))))
 
 ;;;Handles generation of units based on the unit-finders regex list
-;;;(unitize-all txt)
+;;;(unitize-all txt) yields something like:
 ;;;"Then Dr~~*~~@ Smith said \"This~~@is~~@a~~@quote!\" with anger." 
 (defn unitize-all [txt] ((apply comp (map (fn[p]  #(unitize (find-units p) %)) lang/units)) txt))
 
@@ -77,7 +71,7 @@
                     (str/replace "”" "\"")
                     (str/replace "“" "\"")
                     (unitize-all)                                  
-                    (str/replace ". " " _DOT_ ")
+                    (str/replace ". " (str " " const/dot-token " "))
                     (str/replace ", " " _COMMA_ ")
                     (str/replace "! " " _BANG_ ")
                     (str/replace "? " " _QUEST_ ")
@@ -85,15 +79,16 @@
 
 ;;; Presentation: undo lexer escaping, and also ensure validity per language.clj
 (defn cleanup [p] (-> p
-                      (str/replace escaper-space  " ")
+                      (str/replace const/escaper-space  " ")
                       (str/replace #"\s+" " ")                      
-                      (str/replace " _DOT_"  ".")
+                      (str/replace (str " "  const/dot-token)  ".")
                       (str/replace " _COMMA_" ",")
                       (str/replace "##" " ")
                       (str/replace " _BANG_" "!" )
                       (str/replace " _QUEST_" "?")
                       (lang/validate-quote)
-                      (str/replace escaper-dot ".")              
+                      ;We do this last b/c validate-quote attaches special significance to .
+                      (str/replace const/escaper-dot ".")              
                       ))
 
 ;;;> (group 3 [1 2 3 4 5 6])
@@ -131,7 +126,9 @@
 ;;; generated quote.
 (def starters (atom
                (if (not (.exists (io/as-file "starters")))
-                 (map #(first (str/split % #"\s"))(str/split (cook @raw-food) #"(_DOT_\s|_QUEST_\s|_BANG_\s)"))
+                 (map #(first (str/split % #"\s"))(str/split (cook @raw-food)
+                                                             (read-string (str "#\"("  const/dot-token "\\s|_QUEST_\\s|_BANG_\\s)\""))
+                                                             ))
                  (str/split (slurp "starters") #"\n"))))
 
 ;;;A starter is a randomly selected word from the collection of words eligible to begin a generated quote.
@@ -148,7 +145,14 @@
   ([data len] (make-quote data len (phrase len data)))
   ([data len p] 
    (let [s (str p " " (pick-words (last(str/split p #"\s")) data)) lword (last(str/split s #"\s"))]
-     (if (and (not (nil? (re-matches #"(?s)^.*_DOT_.*$" s)))    (>= (count s) const/target-length)) 
+     (if (and (not (nil? (re-matches
+
+;;; ?s means "dot matches newline"... looking for at least one period anywhere
+;;; TODO do we even need it anymore? \n should be gone here.
+                          (read-string (str "#\"(?s)^.*" const/dot-token  ".*$\"" ))
+
+
+                                     s)))    (>= (count s) const/target-length)) 
        (cleanup s)
        (recur data len s)))))
 
