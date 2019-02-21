@@ -2,7 +2,7 @@
 ;;;TODO - phrase length gets "stuck" if reduced to single value
 ;;;TODO - quickly submitting can result in bad/good not getting set
 ;;;DOC expectations e.g. space follows . ? or !, balanced quotes, etc.
-;;;DOC - two approaches to "Starters": rm file and prune down large set vs. start w/ simple man'ly created file (The, I, A... must be in file)
+;;;DOC - two approaches to "Starters" etc.: rm file and prune down large set vs. start w/ simple man'ly created file (The, I, A... must be in file)
 ;;;TODO - input must end with . - doc? (No, shouldn't end with a word that doesn't occur elsewhere)
 ;;;TODO - readme.md (x2) should note that this is a porpus project
 ;;;TODO - build a github profile - sfp? maze stuff?
@@ -104,16 +104,13 @@
 ;;; (("I" "think" "the" "most") ("think" "the" "most" "important") ("the" "most" "important" "thing") ("most" "important" "thing" "is")...
 (defn word-groups [p len] (group len (str/split p #"\s+")))
 
-;;;(("I" "think" "the" "most") ("I" "also" "think" "that")...
-(defn word-maps [p] (map (fn [x] (cons (first x)(rest x))) p))
-
 ;;;>(words-for "I")
 ;;; (("think" "the" "most")("think" "the" "most")("don't" "have" "all")("know" "Dave" "has")("think" "it's" "important"))
 (defn words-for
   [word maps] (map rest (filter #(= (first %) word ) maps)))
 
 ;;;;Invokes word-maps, etc. from above.
-(defn freq-data [len]  (word-maps (word-groups (cook @raw-food) len )))
+(defn freq-data [len] (word-groups (cook @raw-food) len ))
 
 ;;;Gets the next fragment to follow up the word passed as parameter, per the Markov chain.
 ;;;(pick-words "I" (freq-data 5 ))
