@@ -1,3 +1,5 @@
+;;;TODO - phrase length gets "stuck" if reduced to single value
+;;;TODO - quickly submitting can result in bad/good not getting set
 ;;;TODO - recomment post-length-learning
 ;;;TODO - config file, including byline and constants
 ;;;DOC expectations e.g. space follows . ? or !, balanced quotes, etc.
@@ -13,6 +15,7 @@
    [reitit.ring.coercion :as rrc]
    [reitit.coercion.spec]
    [fast-markov.language :as lang]
+   [fast-markov.constants :as const]
    [reitit.ring :as reitit-ring]
    [clojure.java.io :as io]
    [clojure.string :as str]
@@ -20,10 +23,6 @@
    [hiccup.page :refer [include-js include-css html5]]
    [config.core :refer [env]]))
 
-;;;Affects but does not dictate the length of generated quotes; quotes will begin
-;;; at least this long, but will also be pared down to remove sentence fragments,
-;;; for example.
-(def target-length 200)
 (def byline (slurp "byline"))
 
 ;;;In strings that get turned into units according to the logic in language.clj,
@@ -72,7 +71,8 @@
 ;;; This is essentially a lexer.
 (defn cook [p]  (-> p
                     (str p " ") ;So that final . ! or ? will be detected properly as a sentence-end
-                    (str/replace "\n" " ")                                        
+                    (str/replace "\n" " ")
+                    (str/replace #"\s+" " ")                                         
                     (str/replace "’" "'")
                     (str/replace "”" "\"")
                     (str/replace "“" "\"")
@@ -119,10 +119,10 @@
 (defn freq-data [len]  (word-maps (word-groups (cook @raw-food) len )))
 
 ;;;Gets the next fragment to follow up the word passed as parameter, per the Markov chain.
-;;;(pick-words "I" 5)
+;;;(pick-words "I" (freq-data 5 ))
 ;;; ("think" "it's" "important" "for")
-(defn pick-words [word len]
-  (let [options (words-for word (freq-data len ))]
+(defn pick-words [word data]
+  (let [options (words-for word data)]
     (if (>  (count options) 0)
       (str/join " "(nth options (rand-int (count options)))) nil  )))
 
@@ -131,8 +131,7 @@
 ;;; generated quote.
 (def starters (atom
                (if (not (.exists (io/as-file "starters")))
-                 (map #(first (str/split % #"\s"))(str/split (cook @raw-food)
-                                                             #"(_DOT_\s|_QUEST_\s|_BANG_\s)"))
+                 (map #(first (str/split % #"\s"))(str/split (cook @raw-food) #"(_DOT_\s|_QUEST_\s|_BANG_\s)"))
                  (str/split (slurp "starters") #"\n"))))
 
 ;;;A starter is a randomly selected word from the collection of words eligible to begin a generated quote.
@@ -140,18 +139,18 @@
 
 ;;;A phrase is a fragment consisting of a starter plus several words that have been found to follow it in
 ;;; the text input into the Markov generator.
-(defn phrase [len]  (let [x (pick-starter)]  (str x " " (pick-words x len))))
+(defn phrase [len data]  (let [x (pick-starter)]  (str x " " (pick-words x data))))
 
 ;;;Makes a phrase, and then adds Markov generated fragments to it until a minimum length requirement is
 ;;; met, and at least one period is present in the output. This is then passed through "cleanup" for
 ;;; presentation
 (defn make-quote
-  ([phrase-len] (make-quote phrase-len (phrase phrase-len)))
-  ([phrase-len p] 
-   (let [s (str p " " (pick-words (last(str/split p #"\s")) phrase-len)) lword (last(str/split s #"\s"))]
-     (if (and (not (nil? (re-matches #"(?s)^.*_DOT_.*$" s)))    (>= (count s) target-length)) 
+  ([data len] (make-quote data len (phrase len data)))
+  ([data len p] 
+   (let [s (str p " " (pick-words (last(str/split p #"\s")) data)) lword (last(str/split s #"\s"))]
+     (if (and (not (nil? (re-matches #"(?s)^.*_DOT_.*$" s)))    (>= (count s) const/target-length)) 
        (cleanup s)
-       (recur  phrase-len s)))))
+       (recur data len s)))))
 
 ;;;Head for all pages served up.
 (defn head []
@@ -165,22 +164,20 @@
 ;;; bad quote buttons. It is refactored out of the GET and POST handlers of
 ;;; the "/learn" route.
 (defn form-body []
-  (let [len (phrase-length)]
-  (html5 (head) [:body [:form {:method "post"} [:textarea { :rows 12 :cols 80 :name "quotetext" }(make-quote len)]
+  (let [len (phrase-length) data (freq-data len )]
+   (html5 (head) [:body [:form {:method "post"} [:textarea { :rows 12 :cols 80 :name "quotetext" }(make-quote data len)]
                         [:br]
                         [:input {:type "checkbox" :name "bad" :id "bad" :style "display:none" }]                 
                         [:button {:type "submit" :onclick "fast_markov.core.make_good_quote()"} "Good Quote"]
                         [:button {:type "submit" :onclick "fast_markov.core.make_bad_quote()"} "Bad Quote"]
                         [:button {:type "button" :onclick "fast_markov.core.get_new_quote()"} "Get Another"]
-                        [:input {:value len :name "phraselen" :type "hidden"}]
-;                        [:span (str/join " " (filter #(not (int? %)) @lengths))]
-;                        [:span (str/join " " @lengths )]
+                        [:input {:value len :name "phraselen"}] ; :type "hidden"}]
                         ](include-js "/js/app.js")])))
 
 ;;;Return all of the sentence-starters in quot that actually have markov-generated successors.
 ;;; Used to get "good" candidates for inclusion in the starters collection when learning.
-(defn get-first-word [quot]
-  (filter #(not (nil? (pick-words % 9))) ;Len parameter doesn't matter here; 9 is fast
+(defn get-first-word [quot dat ]
+  (filter #(not (nil? (pick-words % dat ))) ;Len parameter doesn't matter here; 9 is fast
           (map (fn[p] (first (str/split p #"(\s|\.|\?|!)" ))) (str/split quot #"[\.\?\!]\s"))))
 
 ;;;Remove once occurrence of "item" from "vect"
@@ -193,12 +190,12 @@
     [    
      ["/"
       {:get {
-             :handler (fn [stuff]
+             :handler (fn [stuff] (let [len (phrase-length) data (freq-data len )]
                         {:status 200
                          :headers {"Content-Type" "text/html"}
                          :body
-                         (html5 (head) [:body  [:span (make-quote (phrase-length))[:br][:span byline]]
-                                        (include-js "/js/app.js")])})}}]
+                         (html5 (head) [:body  [:span (make-quote data len)]
+                                        (include-js "/js/app.js")])}))}}]
      ["/learn"
       {:get {
              :handler (fn [stuff]
@@ -207,16 +204,16 @@
                                  :body (form-body)})}
        :post {:parameters {:body {:quotetext string? :bad boolean? :phraselen int?}}
               :handler (fn  [{ {qt :quotetext bad :bad phraselen :phraselen} :params }]
-                         (when bad ;"Bad" quote removes on instance of selected starter from collection
+                         (if bad (do ;"Bad" quote removes on instance of selected starter from collection
                            (if (> (count @starters) 1) (swap! starters
-                                                              #(remove-once %  (first (get-first-word qt)))))
+                                                              #(remove-once %  (first (get-first-word qt  (freq-data (read-string phraselen) )))))) ;OPTIMIZE TODO
                            (if (> (count @lengths) 1) (swap! lengths
-                                                             #(remove-once % phraselen))))
-                         (when (not bad)
+                                                             #(remove-once % (read-string phraselen))))) ;;;TODO too many read-strings on this one
+
                            (do ;"Good" quote adds first word of each sentence to starters and adds whole qt to input.
                              (swap! raw-food #(str % " " qt " ")) ;trailing quote ensures terminal punction gets translated e.g. to _DOT_
                              (swap! starters
-                                    #(concat % (get-first-word qt)))
+                                    #(concat % (get-first-word qt  (freq-data (read-string phraselen))))) ;OPTIMIZE TODO
                              (swap! lengths
                                     #(conj % (read-string phraselen))) ;Need read-string; param was checked but not converted above
                              ))
