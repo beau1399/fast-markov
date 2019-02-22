@@ -1,2 +1,2 @@
 # fast-markov
-Markov chain generator
+Markov chain generator!
