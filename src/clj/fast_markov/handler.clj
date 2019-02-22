@@ -100,17 +100,14 @@
     (if (= (count fragment) 0) product (recur num (rest collect) pr))))
 (defn group [num collect] (group-inner num collect []))
 
-;;;Makes something like this:
-;;; (("I" "think" "the" "most") ("think" "the" "most" "important") ("the" "most" "important" "thing") ("most" "important" "thing" "is")...
-(defn word-groups [p len] (group len (str/split p #"\s+")))
-
 ;;;>(words-for "I")
 ;;; (("think" "the" "most")("think" "the" "most")("don't" "have" "all")("know" "Dave" "has")("think" "it's" "important"))
 (defn words-for
   [word maps] (map rest (filter #(= (first %) word ) maps)))
 
-;;;;Invokes word-maps, etc. from above.
-(defn freq-data [len] (word-groups (cook @raw-food) len ))
+;;;;Invokes word-maps, etc. from above. to build a list of fragments
+(defn freq-data [len]
+  (group len (str/split  (cook @raw-food) #"\s+")))
 
 ;;;Gets the next fragment to follow up the word passed as parameter, per the Markov chain.
 ;;;(pick-words "I" (freq-data 5 ))
