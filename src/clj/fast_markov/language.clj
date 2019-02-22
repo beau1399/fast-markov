@@ -1,11 +1,15 @@
-(ns fast-markov.language)
+(ns fast-markov.language
+  (:require 
+   [fast-markov.constants :as const]))
 
 (defn validate-quote [p]
   ;;Until quote is valid English, i.e...
   (if (and  ;;No unclosed quotations
        (= 0 (mod ((frequencies p) \" 0) 2))
        ;;Ends with something resembling a complete sentence
-       (or (=(last p) \.)(=(last p) \?)(=(last p) \!)(=(last p) \"))
+       ;; ?s means "dot matches newline"... looking for at least one period anywhere
+       ;; TODO do we even need it anymore? \n should be gone here.       
+       (re-matches  #"(?s)^.+(_DOT_|_BANG_|_QUEST_)\s*$" p)
        ;;Balanced parentheses
        (=  ((frequencies p) \( 0) ((frequencies p) \) 0)))(str p)
       ;;...Remove a character from the end

@@ -83,14 +83,14 @@
 (defn cleanup [p] (-> p
                       (str/replace const/escaper-space  " ")
                       (str/replace #"\s+" " ")                      
-                      (str/replace (str " "  const/dot-token)  ".")
                       (str/replace (str " "  const/comma-token) ",")
                       (str/replace const/hidden-space " ")
-                      (str/replace (str " "  const/bang-token) "!" )
-                      (str/replace (str " "  const/quest-token) "?" )
                       (lang/validate-quote)
-                      ;We do this last b/c validate-quote attaches special significance to .
-                      (str/replace const/escaper-dot ".")              
+                      ;We do these last b/c validate-quote attaches special significance to . ? and !
+                      (str/replace const/escaper-dot ".")
+                      (str/replace (str " "  const/dot-token)  ".")
+                      (str/replace (str " "  const/bang-token) "!" )
+                      (str/replace (str " "  const/quest-token) "?" )                      
                       ))
 
 ;;;> (group 3 [1 2 3 4 5 6])
