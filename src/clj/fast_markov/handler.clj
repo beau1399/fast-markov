@@ -202,7 +202,7 @@
                                     {:status  200
                                      :headers {"Content-Type" "text/html"}
                                      :body
-                                     (html5 (head) [:body  [:span (make-quote data len)]
+                                     (html5 (head) [:body  [:span (make-quote data len) [:br][:span byline]]
                                                     (include-js "/js/app.js")])}))}}]
      ["/learn"
       {:get  {
