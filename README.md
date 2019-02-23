@@ -46,6 +46,9 @@ The file at fast-markov/src/clj/fast_markov/constants.clj defines some constants
 
 ### The Language File
 
+The file at fast-markov/src/clj/fast_markov/language.clj contains some higher-level code that may be beneficial to tweak for your input text:
+
+* The *units* data structure contains a list of regular expressions. Portions of the input that match one of these will be treated as an atom for purposes of quote generation. That is, these portions will be 
 
 ## Technical Description
 
