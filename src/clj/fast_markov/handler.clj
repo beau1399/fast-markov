@@ -1,6 +1,4 @@
 ;;;TODO - doc parallelism implications
-;;;TODO - phrase length gets "stuck" if reduced to single value
-;;;TODO - quickly submitting can result in bad/good not getting set
 ;;;DOC expectations e.g. space follows . ? or !, balanced quotes, etc.
 ;;;DOC - two approaches to "Starters" etc.: rm file and prune down large set vs. start w/ simple man'ly created file (The, I, A... must be in file)
 ;;;TODO - input must end with . - doc? (No, shouldn't end with a word that doesn't occur elsewhere)
@@ -22,15 +20,16 @@
 
 (def byline (slurp "byline"))
 
-;;;How big are the fragments used to make quotes? This is learned and stored in a
-;;; file. It defaults to a range configured in contants.clj is the file isn't found.
+;;;How big are the fragments used to make quotes? Will be learned and stored in a
+;;; file. It defaults to a range configured in contants.clj is the file isn't
+;;; found.
 (def lengths (atom
                (if (not (.exists (io/as-file "lengths")))
                 (range const/min-phrase const/max-phrase)
                 (map read-string (str/split (slurp "lengths") #"\n")))))
 (defn phrase-length [] (nth @lengths (rand-int (count @lengths))))
 
-;;;Generates list of functions that, when composed, handles the unitization of
+;;;Generates list of functions that, when composed, handles the unitization of  ;
 ;;; patterns defined in language.clj. "Snippets" is a list of all strings to be
 ;;; unitized.
 (defn esc-functions[snippets]
@@ -59,17 +58,15 @@
 (defn unitize-all [txt]
   ((apply comp (map (fn[p]  #(unitize (find-units p) %)) lang/units)) txt))
 
-;;; Use ## to join together words in ./input that shouldn't be separated e.g. Baton##Rouge?
+;;; Use ## to join together words in ./input that shouldn't be separated 
 (def raw-food (atom (slurp "input")))
 
 ;;; This is essentially a lexer.
 (defn cook [p]  (-> p
-                    (str p " ") ;So that final . ! or ? will be detected properly as a sentence-end
-                    ;Collapse whitespace
-                    (str/replace "\n" " ") 
+                    (str p " ") ;So final . ! or ? will be detected
+                    (str/replace "\n" " ")  ;Collapse whitespace
                     (str/replace #"\s+" " ")
-                    ;Get rid of fancy Unicode quotes
-                    (str/replace "’" "'")
+                    (str/replace "’" "'") ;Get rid of Unicode quotes
                     (str/replace "”" "\"")
                     (str/replace "“" "\"")                  
                     (unitize-all)                                  
@@ -79,14 +76,16 @@
                     (str/replace "? " (str " " const/quest-token " "))
                     ))
 
-;;; Presentation: undo lexer escaping, and also ensure validity per language.clj
+;;; Presentation: undo lexer escaping, and also ensure validity per
+;;;  language.clj
 (defn cleanup [p] (-> p
                       (str/replace const/escaper-space  " ")
                       (str/replace #"\s+" " ")                      
                       (str/replace (str " "  const/comma-token) ",")
                       (str/replace const/hidden-space " ")
                       (lang/validate-quote)
-                      ;We do these last b/c validate-quote attaches special significance to . ? and !
+                      ;;We do these last b/c validate-quote attaches special
+                      ;; significance to . ? and !
                       (str/replace const/escaper-dot ".")
                       (str/replace (str " "  const/dot-token)  ".")
                       (str/replace (str " "  const/bang-token) "!" )
@@ -101,7 +100,7 @@
 (defn group [num collect] (group-inner num collect []))
 
 ;;;>(words-for "I")
-;;; (("think" "the" "most")("think" "the" "most")("don't" "have" "all")("know" "Dave" "has")("think" "it's" "important"))
+;;; (("think" "the" "most")("think" "the" "most")("don't" "have" "all")
 (defn words-for
   [word maps] (map rest (filter #(= (first %) word ) maps)))
 
@@ -109,7 +108,8 @@
 (defn freq-data [len]
   (group len (str/split  (cook @raw-food) #"\s+")))
 
-;;;Gets the next fragment to follow up the word passed as parameter, per the Markov chain.
+;;;Gets the next fragment to follow up the word passed as parameter, per the
+;;; Markov chain.
 ;;;(pick-words "I" (freq-data 5 ))
 ;;; ("think" "it's" "important" "for")
 (defn pick-words [word data]
@@ -126,30 +126,35 @@
                   #(first (str/split % #"\s"))
                   (str/split (cook @raw-food)
                              ;Build regex allowing any sentence-ender.
-                             (read-string
-                              (str "#\"(" const/dot-token "\\s|" const/quest-token "\\s|"
-                                   const/bang-token "\\s)\""))))
+                             (read-string (str
+                                           "#\"("
+                                           const/dot-token "\\s|"
+                                           const/quest-token "\\s|"
+                                           const/bang-token "\\s)\""))))
                  (str/split (slurp "starters") #"\n"))))
 
-;;;A starter is a randomly selected word from the collection of words eligible to begin a generated quote.
+;;;A starter is a randomly selected word from the collection of words eligible to
+;;; begin a generated quote.
 (defn pick-starter [] (nth @starters (rand-int (count @starters))))
 
-;;;A phrase is a fragment consisting of a starter plus several words that have been found to follow it in
-;;; the text input into the Markov generator.
+;;;A phrase is a fragment consisting of a starter plus several words that have
+;;; been found to follow it in the text input into the Markov generator.
 (defn phrase [len data]  (let [x (pick-starter)]  (str x " " (pick-words x data))))
 
-;;;Makes a phrase, and then adds Markov generated fragments to it until a minimum length requirement is
-;;; met, and at least one period is present in the output. This is then passed through "cleanup" for
-;;; presentation
+;;;Makes a phrase, and then adds Markov generated fragments to it until a minimum
+;;; length requirement is met, and at least one period is present in the output.
+;;; This is then passed through "cleanup" for presentation
 (defn make-quote
   ([data len] (make-quote data len (phrase len data)))
   ([data len p] 
    (let [s (str p " " (pick-words (last(str/split p #"\s")) data))
          lword (last(str/split s #"\s"))]
-     (if (and (not (nil? (re-matches
-;;; ?s means "dot matches newline"... looking for at least one period anywhere
-;;; TODO do we even need it anymore? \n should be gone here.
-                          (read-string (str "#\"(?s)^.*" const/dot-token  ".*$\"" ))s)))
+     (if (and (not (nil?
+                    (re-matches
+;; ?s means "dot matches newline"... looking for at least one period anywhere
+;; TODO do we even need it anymore? \n should be gone here.
+                     (read-string
+                      (str "#\"(?s)^.*" const/dot-token  ".*$\"" ))s)))
               (>= (count s) const/target-length)) 
        (cleanup s)
        (recur data len s)))))
@@ -174,8 +179,8 @@
               { :rows const/gui-rows :cols const/gui-cols :name "quotetext" }(make-quote data len)]
              [:br]
              [:input {:type "checkbox" :name "bad" :id "bad" :style "display:none" }]                 
-             [:button {:type "submit" :onclick "fast_markov.core.make_good_quote()"} "Good Quote"]
-             [:button {:type "submit" :onclick "fast_markov.core.make_bad_quote()"} "Bad Quote"]
+             [:button {:type "button" :onclick "fast_markov.core.make_good_quote()"} "Good Quote"]
+             [:button {:type "button" :onclick "fast_markov.core.make_bad_quote()"} "Bad Quote"]
              [:button {:type "button" :onclick "fast_markov.core.get_new_quote()"} "Get Another"]
              [:input {:value len :name "phraselen" :type "hidden"}]
              ](include-js "/js/app.js")])))
@@ -218,9 +223,11 @@
                               (if bad
                                 (do ;"Bad" quote removes on instance of selected starter from collection
                                   (if (> (count @starters) 1) (swap! starters
-                                                                     #(remove-once %  (first (get-first-word qt data))))) 
-                                  (if (> (count @lengths) 1) (swap! lengths
-                                                                    #(remove-once % phraselen)))) 
+                                                                     #(remove-once %  (first (get-first-word qt data)))))
+                                  (swap! lengths
+                                         #(if (> (count %) 1)
+                                            (remove-once % phraselen)
+                                            (range const/min-phrase const/max-phrase))))
                                 (do ;"Good" quote adds first word of each sentence to starters and adds whole qt to input.
                                   (swap! raw-food #(str % " " qt " ")) ;trailing space ensures terminal punction gets translated e.g. to _DOT_
                                   (swap! starters
