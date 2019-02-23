@@ -30,9 +30,22 @@ In general, input text will yield better results if it hews closely to the rules
 
 ### The Constants File
 
-The file at fast-markov/src/clj/fast_markov/constants.clj
+The file at fast-markov/src/clj/fast_markov/constants.clj defines some constants that can be tweaked for optimal performance:
+
+* Parameter *target-length* defines a minimum quote length. This is a soft limit, in that sentence fragments will be trimmed off of the end of the generated quote, so that quotes consist of full sentences.
+
+* Parameters *min-phrase* and *max-phrase* define the range of the size of the fragments used to build quotes. The range is inclusive of its minimum but not its maximum. A value from the range will be randomly selected for each quote. The range is subject to the learning process; if a value of, say, 3 is selected for a quote, and that quote is rated good, then a 3 will be added to the in-memory range used for additional quotes. The range is also made persistent in file "ranges," which is loaded at startup, if available, in which case *min-phrase* and *max-phrase* are not used. 
+
+* Values *dot-token*, *bang-token*, *quest-token*, and *comma-token* are placeholders used by the lexer. They should not require adjustment unless your input happens to include the default values supplied.
+
+* Constant string *hidden-space* can be used within the input file to "glue together" words separated by space(s). For example, if you do not want "North" and "Dakota" to be treated as separate tokens, replace them with "North##Dakota" in the input (assuming ## is still the value present in constants.clj- you may need to change it for certain input text).
+
+* Parameters *gui-rows* and *gui-cols* determine the size of the textarea control used by the "/learn" GUI.
+
+* Constants *escaper-quote* and *escaper-dot* are lexer placeholders similar to *dot-token*, etc.
 
 ### The Language File
+
 
 ## Technical Description
 
