@@ -4,6 +4,8 @@
 ;;;TODO - input must end with . - doc? (No, shouldn't end with a word that doesn't occur elsewhere)
 ;;;TODO - readme.md (x2) should note that this is a porpus project
 ;;;TODO - build a github profile - sfp? maze stuff?
+;;;TODO - is COMMA necessary? spacing issue?
+
 
 (ns fast-markov.handler
   (:require 
@@ -78,12 +80,14 @@
 
 ;;; Presentation: undo lexer escaping, and also ensure validity per
 ;;;  language.clj
-(defn cleanup [p] (-> p
+(defn cleanup-first [p] (-> p
                       (str/replace const/escaper-space  " ")
                       (str/replace #"\s+" " ")                      
                       (str/replace (str " "  const/comma-token) ",")
                       (str/replace const/hidden-space " ")
-                      (lang/validate-quote)
+                      (lang/validate-quote)))
+
+(defn cleanup-second [p] (-> p
                       ;;We do these last b/c validate-quote attaches special
                       ;; significance to . ? and !
                       (str/replace const/escaper-dot ".")
@@ -155,8 +159,14 @@
 ;; TODO do we even need it anymore? \n should be gone here.
                      (read-string
                       (str "#\"(?s)^.*" const/dot-token  ".*$\"" ))s)))
-              (>= (count s) const/target-length)) 
-       (cleanup s)
+              (>= (count s) const/target-length))
+       ;; Candidate for return found. Either clean and return or,
+       ;;  if cleanup-first returns "", indicating that lang/validate-quote
+       ;;  couldn't make a syntactically valid quote, start over. 
+       (let [sprime (cleanup-first s)]
+         (if (> (count sprime) 0) (cleanup-second sprime ) 
+             (recur data len (phrase len data)))) ;Start over
+       ;;Not ready yet... keep building
        (recur data len s)))))
 
 ;;;Head for all pages served up.
