@@ -22,11 +22,11 @@ The system seen here grew out fan frustration with East Carolina University spor
 
 ## Generating Markov Models
 
-You will likely want to use the code provided for something other than simulating Jon Gilbert. This can be done by replacing file "input" (present in the root folder of the code).
+You will likely want to use the code provided for something other than simulating Jon Gilbert. This can be done by replacing file "input" (present in the root folder of the code). You will also want to change file "byline," which is printed beneath the quote to give its putative author.
 
 There are not many requirements for the content of the input file. It should end with a sentence terminator (. ? ! or a quote ending in one of these), or at least a word that occurs elsewhere in the text. You do not want to end the file with a word that does not exist anywhere else in the text, because this presents the Markov generator code with a token for which it cannot generate any reasonable followers.
 
-In general, input text will yield better results if it hews closely to the rules of standard written English. Sentence fragments, unclosed quotations, section headers / outlines, etc. will serve to confuse the Markov logic. Abbreviations ending in periods may get confused for the ends of sentences, though configuration options for dealing with know abbreviations are discussed further below.
+In general, input text will yield better results if it hews closely to the rules of standard written English. Sentence fragments, unclosed quotations, section headers / outlines, etc. will serve to confuse the Markov logic. Sentence terminators should be followed by a space, which helps to distinguish them from other valid uses of these symbols. Abbreviations ending in periods may get confused for the ends of sentences, though configuration options for dealing with know abbreviations are discussed further below.
 
 ### The Constants File
 
@@ -42,13 +42,17 @@ The file at fast-markov/src/clj/fast_markov/constants.clj defines some constants
 
 * Parameters *gui-rows* and *gui-cols* determine the size of the textarea control used by the "/learn" GUI.
 
-* Constants *escaper-quote* and *escaper-dot* are lexer placeholders similar to *dot-token*, etc.
+* Constant *escaper-space* is a lexer placeholders similar to *dot-token*, etc.
 
 ### The Language File
 
-The file at fast-markov/src/clj/fast_markov/language.clj contains some higher-level code that may be beneficial to tweak for your input text:
+The file at fast-markov/src/clj/fast_markov/language.clj contains some higher-level code that may be beneficial to tweak for your input text. In particular, the *units* data structure contains a list of regular expressions. Portions of the input that match one of these will be treated as an atom for purposes of quote generation. That is, these portions will not be split up into individual tokens, but will be treated as a single token.
 
-* The *units* data structure contains a list of regular expressions. Portions of the input that match one of these will be treated as an atom for purposes of quote generation. That is, these portions will be 
+The *units* expressions provided in the archive as downloaded will match quotations, expressions in parentheses, and several common abbreviations. You may find it necessary to add expressions for additional abbreviations, and you may also want to reconsider the treatement of quotes and parenthetical expressions. 
+
+Including quotations in *units* was done under the assumption that these parts of the text do not represent the language of the person being emulated, but that of some other person he or she was quoting. If the input text is, say, taken from a work of literary fiction, in an attempt to emulate its author, that assumption is probably less valid than it is for the input text provided here.
+
+The other thing present in "language.clj" is function *validate-quote*. This is applied near the end of the quote generation process, and ensures that the quote respects some basic linguistic rules. Quote marks and parentheses are balanced in its return value, for example, and this value will end in a complete sentence. 
 
 ### Learning Process Files
 
@@ -56,11 +60,29 @@ There are two important files that do not exist in the "Fast Markov" download bu
 
 In both cases, these files get changed during the learning process, and are paralleled by an in-memory runtime data structure. Both files consist of a collection of newline-delimited values; in "starters," these are individual words, and it "lengths" they are integer fragment lengths. Both files can be deliberately hand-crafted prior to the learning process, or omitted and allowed to be automatically built when the learning process begins.
 
-File "lengths" will default, as already described, to a list of the integers between *min-phrase* and *max-phrase*. File "starters" will be built, if it has not been previously created, such that it includes all sentence-starters in the input text. 
+File "lengths" will default, as already described, to a list of the integers greater than or equal to *min-phrase* and less than *max-phrase*. File "starters" will be built, if it has not been previously created, such that it includes all sentence-starters in the input text. 
 
 ## Technical Description
 
-blah, blah
+On program start, "input" is read and put through some preprocessing steps that make it more consistent and easier to deal with:
+
+* Whitespace is collapsed, replacing newlines and consecutive whitespace with single spaces. 
+
+* Unicode quotes are replaced with their ASCII equivalents
+
+* A space is added to the end of the text, to ensure that any final sentence terminator is recognizable as such.
+
+### Unitization ###
+
+Next, "units" in the text are identified, based on the data present in "language.clj." These then have any contained whitespace replaced with a temporary placeholder. The abbreviation units are defined such that the trailing space gets included and escaped. The rest of the code is largely based on splitting up tokens wherever a space occurs, and this will skip over any text unitized in this manner.
+
+The unitization code may be of interest to some readers. Each regular expression is first passed into *find-units*, which returns a function that finds all of its occurrences (except those already unitized under some other regular expression):
+
+```clojure
+(defn find-units [regex] (fn[p]
+                           (filter #(not (re-matches #"[^\s]+" %))
+                                   (re-seq regex p))))
+```
 
 ### Lexing ###
 
