@@ -18,7 +18,7 @@ The system seen here grew out fan frustration with East Carolina University spor
 
 ## Using "Fast Markov"
 
-"Fast Markov" is built using the [Porpus Leiningen template](https://github.com/beau1399/porpus). As such, it's a typical Figwheel / Jetty-based Web application. Running "lein figwheel" from a shell session in the root folder of the code will host a quote presentation page at http://localhost:3449, which you can refresh to see a onew quote, and the learning GUI (with a quote and three rating buttons) at http://localhost:3449/learn. 
+"Fast Markov" is built using the [Porpus Leiningen template](https://github.com/beau1399/porpus). As such, it's a typical Figwheel / Jetty-based Web application. Running "lein figwheel" from a shell session in the root folder of the code will host a quote presentation page at http://localhost:3449, which you can refresh to see a new quote. The learning GUI (with a quote and three rating buttons) is hosted at http://localhost:3449/learn. 
 
 ## Generating Markov Models
 
