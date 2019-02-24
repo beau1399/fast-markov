@@ -14,7 +14,7 @@ A word about naming is in order. Only basic efforts have been made to make this 
 
 ## History
 
-The system seen here grew out fan frustration with East Carolina University sports administrator Jon Gilbert and his tendency to send out long, platitude-filled emails to fans and alumni. One message board participant said something like, "you could probably simulate Gilbert with a computer program," and thus "Fast Markov" was born. The provided text input file therefore consists of several of Gilbert's emails stitched together and cleaned up to remove sentence fragments and section headers.
+The system seen here grew out fan frustration with East Carolina University sports administrator Jon Gilbert and his tendency to send out long, platitude-filled emails to fans. One message board participant said something like, "you could probably simulate Gilbert with a computer program," and thus "Fast Markov" was born. The provided text input file therefore consists of several of Gilbert's emails stitched together and cleaned up to remove sentence fragments and section headers.
 
 ## Using "Fast Markov"
 
