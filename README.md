@@ -64,6 +64,35 @@ File "lengths" will default, as already described, to a list of the integers gre
 
 ## Technical Description
 
+The quote generation process relies on several steps; a reasonable breakdown of these might talk about lexing the input text into tokens, parsing this result into data structures meaningful to the Markov chain generator, and then applying the generator to get a quote. 
+
+Each of these steps occurs repeatedly. It would be faster at runtime to do the lexing and parsing just once, but a couple of aspects of the system's function prevent this. First, the randomized nature of the size of the quote fragments used as building blocks implies that the data structure that drives the Markov process will take different forms over time. Second, the inclusion of a learning process implies similar changes.
+
+One implication of this repeated lex / parse execution is that the data structure used to map words to followers and their frequency does not need to be particularly optimal. One might be tempted to implement this as a map, for example, to obtain a quick lookup time, e.g.:
+
+```clojure
+{"I" '("want to" "need to" "must have") "You" '("should have" "are not" "must not")}
+```
+
+Certainly, if this data were more enduring during program execution, this would be advisable. However, given the ephemeral nature of the input text, the fragment size, and the quote starter tokens, any improvement in lookup time would be offset by the time spent repeatedly building of such a map. Instead, the data seen above is maintained in a structure like this:
+
+```clojure
+'( '("I" "want" "to") '("I" "need" "to") '("I" "must" "have")
+   '("You" "should" "have") '("You" "are" "not")  '("You" "must" "not") )
+```
+This data structure is used as input (as parameter *maps*) to a function called *words-for*, which returns potential followers for a word passed as parameter:
+
+```clojure
+(defn words-for
+  [word maps] (map rest (filter #(= (first %) word ) maps)))
+```
+
+### Lexing 
+
+The lexing process translates the input text into a series of tokens. Most of these will simply be words, stored unmodified in individual strings. Syntactically important things like sentence terminators and text matching one of the unit patterns from "language.clj" will be transformed into semantic tokens defined in "constants.clj."
+
+#### Initial Cleaning
+
 On program start, "input" is read and put through some preprocessing steps that make it more consistent and easier to deal with:
 
 * Whitespace is collapsed, replacing newlines and consecutive whitespace with single spaces. 
@@ -72,7 +101,7 @@ On program start, "input" is read and put through some preprocessing steps that 
 
 * A space is added to the end of the text, to ensure that any final sentence terminator is recognizable as such.
 
-### Unitization ###
+#### Unitization
 
 Next, "units" in the text are identified, based on the data present in "language.clj." These then have any contained whitespace replaced with a temporary placeholder. The abbreviation units are defined such that the trailing space gets included and escaped. The rest of the code is largely based on splitting up tokens wherever a space occurs, and this will skip over any text unitized in this manner.
 
@@ -107,6 +136,7 @@ The *unitize* function is itself composed by *unitize-all*, which orchestrates t
 (defn unitize-all [txt]
   ((apply comp (map (fn[p]  #(unitize (find-units p) %)) lang/units)) txt))
 ```
+This could all be accomplished less verbosely, but breaking up the process into several functions did allow for more intelligibility during development.
 
 ### Lexing ###
 
