@@ -2,7 +2,7 @@
 
 ## Overview
 
-"Fast Markov" is a [Markov model](https://hackernoon.com/from-what-is-a-markov-model-to-here-is-how-markov-models-work-1ac5f4629b71) generator with a learning capability. Its input is a file full of natural text to emulate, and its output consists of HTML documents displaying randomly generated "quotations." 
+"Fast Markov" is a [Markov model](https://hackernoon.com/from-what-is-a-markov-model-to-here-is-how-markov-models-work-1ac5f4629b71) generator with a learning capability. Its input is a file containing natural text to emulate, and its output consists of HTML documents displaying randomly generated "quotations." 
 
 A learning mode is provided, in which quotes can be ranked as good, bad, or neutral in their quality by an human using a GUI. The following parameters of the model are iteratively adjusted based on this human feedback:
 
