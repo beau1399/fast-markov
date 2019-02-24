@@ -34,7 +34,7 @@ The file at fast-markov/src/clj/fast_markov/constants.clj defines some constants
 
 * Parameter *target-length* defines a minimum quote length. This is a soft limit, in that sentence fragments will be trimmed off of the end of the generated quote, so that quotes consist of full sentences.
 
-* Parameters *min-phrase* and *max-phrase* define the range of the size of the fragments used to build quotes. The range is inclusive of its minimum but not its maximum. A value from the range will be randomly selected for each quote. The range is subject to the learning process; if a value of, say, 3 is selected for a quote, and that quote is rated good, then a 3 will be added to the in-memory range used for additional quotes. The range is also made persistent in file "ranges," which is loaded at startup, if available, in which case *min-phrase* and *max-phrase* are not used. 
+* Parameters *min-phrase* and *max-phrase* define the range of the size of the fragments used to build quotes. The range is inclusive of its minimum but not its maximum. A value from the range will be randomly selected for each quote. The range is subject to the learning process; if a value of, say, 3 is selected for a quote, and that quote is rated good, then a 3 will be added to the in-memory range used for additional quotes. The range is also made persistent in file "lengths," which is loaded at startup, if available, in which case *min-phrase* and *max-phrase* are not used. 
 
 * Values *dot-token*, *bang-token*, *quest-token*, and *comma-token* are placeholders used by the lexer. They should not require adjustment unless your input happens to include the default values supplied.
 
@@ -52,7 +52,11 @@ The file at fast-markov/src/clj/fast_markov/language.clj contains some higher-le
 
 ### Learning Process Files
 
-There are two files that are generated during the learning process...
+There are two important files that do not exist in the "Fast Markov" download but get generated automatically during the learning process. The file named "lengths," which contains a list of potential fragment lengths, has already been mentioned. File "starters" is similar; it is a persistent storage mechanism for the list of valid quote-starting words.
+
+In both cases, these files get changed during the learning process, and are paralleled by an in-memory runtime data structure. Both files consist of a collection of newline-delimited values; in "starters," these are individual words, and it "lengths" they are integer fragment lengths. Both files can be deliberately hand-crafted prior to the learning process, or omitted and allowed to be automatically built when the learning process begins.
+
+File "lengths" will default, as already described, to a list of the integers between *min-phrase* and *max-phrase*. File "starters" will be built, if it has not been previously created, such that it includes all sentence-starters in the input text. 
 
 ## Technical Description
 
