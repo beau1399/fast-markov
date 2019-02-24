@@ -56,7 +56,6 @@
 ;;; Use ## to join together words in ./input that shouldn't be separated 
 (def raw-food (atom (slurp "input")))
 
-;;; This is essentially a lexer.
 (defn cook [p]  (-> p
                     (str p " ") ;So final . ! or ? will be detected
                     (str/replace "\n" " ")  ;Collapse whitespace
@@ -102,7 +101,7 @@
 
 ;;;;Invokes word-maps, etc. from above. to build a list of fragments
 (defn freq-data [len]
-  (group len (str/split  (cook @raw-food) #"\s+")))
+  (group len (str/split (cook @raw-food) #"\s+")))
 
 ;;;Gets the next fragment to follow up the word passed as parameter, per the
 ;;; Markov chain.
@@ -144,14 +143,13 @@
 (defn make-quote
   ([data len] (make-quote data len (phrase len data)))
   ([data len p] 
-   (let [s     (str p " " (pick-words (last(str/split p #"\s")) data))
+   (let [s (str p " " (pick-words (last(str/split p #"\s")) data))
          lword (last(str/split s #"\s"))]
      (if (and (not (nil?
                     (re-matches
-;; ?s means "dot matches newline"... looking for at least one period anywhere
-;; TODO do we even need it anymore? \n should be gone here.
+                     ;; Looking for at least one period anywhere
                      (read-string
-                      (str "#\"(?s)^.*" const/dot-token  ".*$\"" ))s)))
+                      (str "#\"^.*" const/dot-token  ".*$\"" ))s)))
               (>= (count s) const/target-length))
        ;; Candidate for return found. Either clean and return or,
        ;;  if cleanup-first returns "", indicating that lang/validate-quote
