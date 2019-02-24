@@ -83,6 +83,30 @@ The unitization code may be of interest to some readers. Each regular expression
                            (filter #(not (re-matches #"[^\s]+" %))
                                    (re-seq regex p))))
 ```
+This is applied to the input text, and then passed to *esc-functions*, which generates a list of replacement functions for the actual snippets of text found:
+
+```clojure
+(defn esc-functions[snippets]
+  (map
+   (fn[p] #(str/replace % p
+                        (str " "
+                             (str/.replace p  " " const/escaper-space) 
+                        " "))) snippets))
+```
+
+These are composed and applied to the input text by *unitize*:
+
+```clojure
+(defn unitize[find-func txt]
+  ((apply comp (esc-functions (find-func txt))) txt))
+```
+
+The *unitize* function is itself composed by *unitize-all*, which orchestrates the whole process:
+
+```clojure
+(defn unitize-all [txt]
+  ((apply comp (map (fn[p]  #(unitize (find-units p) %)) lang/units)) txt))
+```
 
 ### Lexing ###
 
