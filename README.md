@@ -26,7 +26,7 @@ You will likely want to use the code provided for something other than simulatin
 
 There are not many requirements for the content of the input file. It should end with a sentence terminator (. ? ! or a quote ending in one of these), or at least a word that occurs elsewhere in the text. You do not want to end the file with a word that does not exist anywhere else in the text, because this presents the Markov generator code with a token for which it cannot generate any reasonable followers.
 
-In general, input text will yield better results if it hews closely to the rules of standard written English. Sentence fragments, unclosed quotations, section headers / outlines, etc. will serve to confuse the Markov logic. Abbreviations ending in periods may get confused for the ends of sentences, though configuration options for dealing with know abbreviations are discussed further below. 
+In general, input text will yield better results if it hews closely to the rules of standard written English. Sentence fragments, unclosed quotations, section headers / outlines, etc. will serve to confuse the Markov logic. Abbreviations ending in periods may get confused for the ends of sentences, though configuration options for dealing with know abbreviations are discussed further below.
 
 ### The Constants File
 
@@ -49,6 +49,10 @@ The file at fast-markov/src/clj/fast_markov/constants.clj defines some constants
 The file at fast-markov/src/clj/fast_markov/language.clj contains some higher-level code that may be beneficial to tweak for your input text:
 
 * The *units* data structure contains a list of regular expressions. Portions of the input that match one of these will be treated as an atom for purposes of quote generation. That is, these portions will be 
+
+### Learning Process Files
+
+There are two files that are generated during the learning process...
 
 ## Technical Description
 
