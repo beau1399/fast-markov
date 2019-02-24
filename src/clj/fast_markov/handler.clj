@@ -1,12 +1,6 @@
 ;;;TODO - doc parallelism implications
-;;;DOC expectations e.g. space follows . ? or !, balanced quotes, etc.
 ;;;DOC - two approaches to "Starters" etc.: rm file and prune down large set vs. start w/ simple man'ly created file (The, I, A... must be in file)
-;;;TODO - input must end with . - doc? (No, shouldn't end with a word that doesn't occur elsewhere)
-;;;TODO - readme.md (x2) should note that this is a porpus project
-;;;TODO - build a github profile - sfp? maze stuff?
 ;;;TODO - is COMMA necessary? spacing issue?
-
-
 (ns fast-markov.handler
   (:require 
    [reitit.ring.coercion :as rrc]
@@ -22,8 +16,8 @@
 
 (def byline (slurp "byline"))
 
-;;;How big are the fragments used to make quotes? Will be learned and stored in a
-;;; file. It defaults to a range configured in contants.clj is the file isn't
+;;;How big are the fragments used to make quotes? Will be learned and stored in 
+;;; a file. It defaults to a range configured in contants.clj is the file isn't
 ;;; found.
 (def lengths (atom
                (if (not (.exists (io/as-file "lengths")))
@@ -37,10 +31,9 @@
 (defn esc-functions[snippets]
   (map
    (fn[p] #(str/replace % p
-                        (str " " (str/.replace
-                                  (str/.replace p  " " const/escaper-space) "."
-                                  const/escaper-dot) " ")))
-   snippets))
+                        (str " "
+                             (str/.replace p  " " const/escaper-space) 
+                        " "))) snippets))
 
 ;;;Applies esc-functions (above) to a string of text to unitize it per the
 ;;; units defined in language.clj.
@@ -90,7 +83,6 @@
 (defn cleanup-second [p] (-> p
                       ;;We do these last b/c validate-quote attaches special
                       ;; significance to . ? and !
-                      (str/replace const/escaper-dot ".")
                       (str/replace (str " "  const/dot-token)  ".")
                       (str/replace (str " "  const/bang-token) "!" )
                       (str/replace (str " "  const/quest-token) "?" )                      
@@ -137,13 +129,14 @@
                                            const/bang-token "\\s)\""))))
                  (str/split (slurp "starters") #"\n"))))
 
-;;;A starter is a randomly selected word from the collection of words eligible to
-;;; begin a generated quote.
+;;;A starter is a randomly selected word from the collection of words eligible
+;;; to begin a generated quote.
 (defn pick-starter [] (nth @starters (rand-int (count @starters))))
 
 ;;;A phrase is a fragment consisting of a starter plus several words that have
 ;;; been found to follow it in the text input into the Markov generator.
-(defn phrase [len data]  (let [x (pick-starter)]  (str x " " (pick-words x data))))
+(defn phrase [len data]
+  (let [x (pick-starter)]  (str x " " (pick-words x data))))
 
 ;;;Makes a phrase, and then adds Markov generated fragments to it until a minimum
 ;;; length requirement is met, and at least one period is present in the output.
@@ -151,7 +144,7 @@
 (defn make-quote
   ([data len] (make-quote data len (phrase len data)))
   ([data len p] 
-   (let [s (str p " " (pick-words (last(str/split p #"\s")) data))
+   (let [s     (str p " " (pick-words (last(str/split p #"\s")) data))
          lword (last(str/split s #"\s"))]
      (if (and (not (nil?
                     (re-matches
@@ -173,7 +166,7 @@
 (defn head []
   [:head
    [:meta {:charset "utf-8"}]
-   [:meta {:name "viewport"
+   [:meta {:name    "viewport"
            :content "width=device-width, initial-scale=1"}]
    (include-css (if (env :dev) "/css/site.css" "/css/site.min.css"))])
 
@@ -181,24 +174,32 @@
 ;;; bad quote buttons. It is refactored out of the GET and POST handlers of
 ;;; the "/learn" route.
 (defn form-body []
-  (let [len (phrase-length) data (freq-data len )]
-    (html5 (head)
-           [:body
-            [:form {:method "post"}
-             [:textarea
-              { :rows const/gui-rows :cols const/gui-cols :name "quotetext" }(make-quote data len)]
-             [:br]
-             [:input {:type "checkbox" :name "bad" :id "bad" :style "display:none" }]                 
-             [:button {:type "button" :onclick "fast_markov.core.make_good_quote()"} "Good Quote"]
-             [:button {:type "button" :onclick "fast_markov.core.make_bad_quote()"} "Bad Quote"]
-             [:button {:type "button" :onclick "fast_markov.core.get_new_quote()"} "Get Another"]
-             [:input {:value len :name "phraselen" :type "hidden"}]
-             ](include-js "/js/app.js")])))
+  (let [len (phrase-length) data (freq-data len )](html5 (head)
+     [:body
+      [:form {:method "post"}
+       [:textarea
+        { :rows const/gui-rows :cols const/gui-cols
+         :name  "quotetext" }(make-quote data len)]
+       [:br]
+       [:input
+        {:type "checkbox" :name "bad" :id "bad" :style "display:none" }]                 
+       [:button
+        {:type "button" :onclick "fast_markov.core.make_good_quote()"}
+        "Good Quote"]
+       [:button
+        {:type "button" :onclick "fast_markov.core.make_bad_quote()"}
+        "Bad Quote"]
+       [:button
+        {:type "button" :onclick "fast_markov.core.get_new_quote()"}
+        "Get Another"]
+       [:input {:value len :name "phraselen" :type "hidden"}]
+       ](include-js "/js/app.js")])))
 
-;;;Return all of the sentence-starters in quot that actually have markov-generated successors.
-;;; Used to get "good" candidates for inclusion in the starters collection when learning.
+;;;Return all sentence-starters in quot that actually have markov-generated
+;;; successors.Used to get "good" candidates for inclusion in the starters
+;;; collection when learning.
 (defn get-first-word [quot dat ]
-  (filter #(not (nil? (pick-words % dat ))) ;Len parameter doesn't matter here; 9 is fast - TODO DO WE NEED??
+  (filter #(not (nil? (pick-words % dat ))) 
           (map (fn[p] (first (str/split p #"(\s|\.|\?|!)")))
                (str/split quot #"[\.\?\!]\s"))))
 
@@ -213,43 +214,53 @@
    (reitit-ring/router
     [["/"
       {:get {
-             :handler (fn [stuff] (let [len (phrase-length) data (freq-data len )]
-                                    {:status  200
-                                     :headers {"Content-Type" "text/html"}
-                                     :body
-                                     (html5 (head) [:body  [:span (make-quote data len) [:br][:span byline]]
-                                                    (include-js "/js/app.js")])}))}}]
+             :handler
+             (fn [stuff] (let [len (phrase-length) data (freq-data len )]
+                           {:status  200
+                            :headers {"Content-Type" "text/html"}
+                            :body
+                            (html5 (head) [:body [:span (make-quote data len)
+                                                  [:br][:span byline]]
+                                           (include-js "/js/app.js")])}))}}]
      ["/learn"
       {:get  {
-              :handler (fn [stuff]
-                         {:status  200
-                          :headers {"Content-Type" "text/html"}
-                          :body    (form-body)})}
-       :post {:parameters {:body {:quotetext string? :bad boolean? :phraselen int?}}
-              :handler    (fn  [{ {qt :quotetext bad :bad pl :phraselen} :params }]
-                            (let [phraselen (read-string pl)
-                                  data      (freq-data phraselen)
-                                  ] ;Infrastructure checks phraselen param. but does not convert to int
-                              (if bad
-                                (do ;"Bad" quote removes on instance of selected starter from collection
-                                  (if (> (count @starters) 1) (swap! starters
-                                                                     #(remove-once %  (first (get-first-word qt data)))))
-                                  (swap! lengths
-                                         #(if (> (count %) 1)
-                                            (remove-once % phraselen)
-                                            (range const/min-phrase const/max-phrase))))
-                                (do ;"Good" quote adds first word of each sentence to starters and adds whole qt to input.
-                                  (swap! raw-food #(str % " " qt " ")) ;trailing space ensures terminal punction gets translated e.g. to _DOT_
-                                  (swap! starters
-                                         #(concat % (get-first-word qt data))) 
-                                  (swap! lengths
-                                         #(conj % phraselen))))
-                              (spit "input" @raw-food " " qt)
-                              (spit "starters" (str/join "\n" @starters))
-                              (spit "lengths" (str/join "\n" @lengths))
-                              {:status  200
-                               :headers {"Content-Type" "text/html"}
-                               :body    (form-body)}))}}]]    
+              :handler
+              (fn [stuff]
+                {:status  200
+                 :headers {"Content-Type" "text/html"}
+                 :body    (form-body)})}
+       :post {:parameters
+              {:body {:quotetext string? :bad boolean? :phraselen int?}}
+              :handler
+              (fn [{{qt :quotetext bad :bad pl :phraselen} :params }]
+                (let [phraselen (read-string pl)
+                      data      (freq-data phraselen)]
+                  (if bad
+                    ;;"Bad" quote removes on instance of selected starter from
+                    ;; collection
+                    (do 
+                      (if (> (count @starters) 1)
+                        (swap! starters
+                               #(remove-once %  (first (get-first-word qt data)))))
+                      (swap! lengths
+                             #(if (> (count %) 1)
+                                (remove-once % phraselen)
+                                (range const/min-phrase const/max-phrase))))
+                    ;;"Good" quote adds first word of each sentence to starters
+                    ;; and adds whole qt to input.
+                    (do
+                      ;;trailing space ensures terminal punction becomes _DOT_
+                      (swap! raw-food #(str % " " qt " "))
+                      (swap! starters
+                             #(concat % (get-first-word qt data))) 
+                      (swap! lengths
+                             #(conj % phraselen))))
+                  (spit "input" @raw-food " " qt)
+                  (spit "starters" (str/join "\n" @starters))
+                  (spit "lengths" (str/join "\n" @lengths))
+                  {:status  200
+                   :headers {"Content-Type" "text/html"}
+                   :body    (form-body)}))}}]]   
     {:data {:middleware middleware }})    
    (reitit-ring/routes
     (reitit-ring/create-resource-handler {:path "/" :root "/public"})

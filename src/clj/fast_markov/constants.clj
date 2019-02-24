@@ -27,7 +27,5 @@
 (def gui-cols 80)
 
 ;;;In strings that get turned into units according to the logic in language.clj,
-;;; this is accomplished by removing temporarily anything that has significance
-;;; to the fast-markov lexer, i.e. spaces and dots.
+;;; this is accomplished by removing temporarily spaces
 (def escaper-space "~~@") ;Temp. whitespace marker in units defined in language.clj
-(def escaper-dot "~~*")   ;Similar, but for dots (lest they get treated as periods)
