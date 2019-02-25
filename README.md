@@ -138,10 +138,28 @@ The *unitize* function is itself composed by *unitize-all*, which orchestrates t
 ```
 This could all be accomplished less verbosely, but breaking up the process into several functions did allow for more intelligibility during development.
 
-### Lexing ###
+#### Final Lexing Steps
 
-blah, blah
+At this point, sentence terminators are replaced with their placeholder values, and the Clojure string *split* function can be used to translate the input text into the tokens required to continue with parsing.
 
-#### Unitization
+### Parsing
 
+A function called *group* is central to the parsing process:
 
+```clojure
+(defn group-inner[num collect product]
+  (let [fragment (take num collect) pr (cons fragment product) ]
+    (if (= (count fragment) 0) product (recur num (rest collect) pr))))
+(defn group [num collect] (group-inner num collect []))
+```
+To understand the relevance of this function, consider an example call, made with numbers instead of words:
+
+```clojure
+(group 3 [1 2 3 4 5 6])
+((6) (5 6) (4 5 6) (3 4 5) (2 3 4) (1 2 3))
+```
+From the standpoint of the Markov generator, the output of this function is relevant. The knowledge that 2 and 3 follow 1 (given that we are using fragments of size 3), 3 and 4 follow 2, etc. is exactly what the generator requires. In fact, at this point we have the fundamental sort of data structure that must be passed into *words-for*.
+
+### Quote Generation
+
+Function *make-quote* wraps all of this into a single quote generation process. 
