@@ -162,4 +162,14 @@ From the standpoint of the Markov generator, the output of this function is rele
 
 ### Quote Generation
 
-Function *make-quote* wraps all of this into a single quote generation process. 
+Function *make-quote* wraps all of this into a single quote generation process. This function is initially called with two parameters: *data*, which is a list of the sort seen in the last code fragment above, but containing tokens, and *len*, which is the fragment length selected for the quote generation process. The function calls *phrase*, which picks a starter word and then calls *words-for* to append an appropriate fragment to it.
+
+After *phrase* returns to *make-quote*, the latter function makes a series of recursive calls to itself, using a second parameter signature in which *data* and *len* are augmented by *p*, which is the last word of the quote so far. This is used to select another fragment to add to the end of the quote. This continues until two conditions have been met: the overall length of the quote must be at least *target-length* (from constants.clj), and it must contain at least one occurrence of *dot-token* (also from constants.clj).
+
+Once these conditions have been met, what remains is mostly cleanup. Placeholder values are replaced with periods, spaces, etc., consecutive whitespace characters are replaced by single spaces, and so on. 
+
+### Quote Validation
+
+The one remaining step more complicated than that is the application of *validate-quote* from "language.clj." This function ensures some basic syntactic rules are respected by the generated quote. In particular, parentheses and quotes must be balanced, and the quote must end with a sentence terminator. 
+
+The *validate-quote* function will remove characters from the end of the quote-in-progress until all of these conditions are met. In particular, this is a good way to remove the sentence fragment that likely resides at the end of the quote prior to this process. 
