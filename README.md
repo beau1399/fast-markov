@@ -172,4 +172,8 @@ Once these conditions have been met, what remains is mostly cleanup. Placeholder
 
 The one remaining step more complicated than that is the application of *validate-quote* from "language.clj." This function ensures some basic syntactic rules are respected by the generated quote. In particular, parentheses and quotes must be balanced, and the quote must end with a sentence terminator. 
 
-The *validate-quote* function will remove characters from the end of the quote-in-progress until all of these conditions are met. In particular, this is a good way to remove the sentence fragment that likely resides at the end of the quote prior to this process. 
+The *validate-quote* function will remove characters from the end of the quote-in-progress until all of these conditions are met. In particular, this is a good way to remove the sentence fragment that likely resides at the end of the quote prior to the call to *validate-quote*. 
+
+It is possible that *validate-quote* will remove all of the characters from the quote-in-progress without ever finding a quote that satisfies all of the necessary conditions. This is very unlikely with "language.clj" (in particular *units*) set up as it is in the archive. However, if one alters this file to remove the unitization of quotes and/or parenthetical expressions, this becomes much more likely. 
+
+If this happens, *validate-quote* will return an empty string, and *make-quote* will respond by discarding the quote generation attempt and beginning another.
