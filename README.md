@@ -138,10 +138,42 @@ The *unitize* function is itself composed by *unitize-all*, which orchestrates t
 ```
 This could all be accomplished less verbosely, but breaking up the process into several functions did allow for more intelligibility during development.
 
-### Lexing ###
+#### Final Lexing Steps
 
-blah, blah
+At this point, sentence terminators are replaced with their placeholder values, and the Clojure string *split* function can be used to translate the input text into the tokens required to continue with parsing.
 
-#### Unitization
+### Parsing
 
+A function called *group* is central to the parsing process:
 
+```clojure
+(defn group-inner[num collect product]
+  (let [fragment (take num collect) pr (cons fragment product) ]
+    (if (= (count fragment) 0) product (recur num (rest collect) pr))))
+(defn group [num collect] (group-inner num collect []))
+```
+To understand the relevance of this function, consider an example call, made with numbers instead of words:
+
+```clojure
+(group 3 [1 2 3 4 5 6])
+((6) (5 6) (4 5 6) (3 4 5) (2 3 4) (1 2 3))
+```
+From the standpoint of the Markov generator, the output of this function is relevant. The knowledge that 2 and 3 follow 1 (given that we are using fragments of size 3), 3 and 4 follow 2, etc. is exactly what the generator requires. In fact, at this point we have the fundamental sort of data structure that must be passed into *words-for*.
+
+### Quote Generation
+
+Function *make-quote* wraps all of this into a single quote generation process. This function is initially called with two parameters: *data*, which is a list of the sort seen in the last code fragment above, but containing tokens, and *len*, which is the fragment length selected for the quote generation process. The function calls *phrase*, which picks a starter word and then calls *words-for* to append an appropriate fragment to it.
+
+After *phrase* returns to *make-quote*, the latter function makes a series of recursive calls to itself, using a second parameter signature in which *data* and *len* are augmented by *p*, which is the last word of the quote so far. This is used to select another fragment to add to the end of the quote. This continues until two conditions have been met: the overall length of the quote must be at least *target-length* (from constants.clj), and it must contain at least one occurrence of *dot-token* (also from constants.clj).
+
+Once these conditions have been met, what remains is mostly cleanup. Placeholder values are replaced with periods, spaces, etc., consecutive whitespace characters are replaced by single spaces, and so on. 
+
+### Quote Validation
+
+The one remaining step more complicated than that is the application of *validate-quote* from "language.clj." This function ensures some basic syntactic rules are respected by the generated quote. In particular, parentheses and quotes must be balanced, and the quote must end with a sentence terminator. 
+
+The *validate-quote* function will remove characters from the end of the quote-in-progress until all of these conditions are met. In particular, this is a good way to remove the sentence fragment that likely resides at the end of the quote prior to the call to *validate-quote*. 
+
+It is possible that *validate-quote* will remove all of the characters from the quote-in-progress without ever finding a quote that satisfies all of the necessary conditions. This is very unlikely with "language.clj" (in particular *units*) set up as it is in the archive. However, if one alters this file to remove the unitization of quotes and/or parenthetical expressions, this becomes much more likely. 
+
+If this happens, *validate-quote* will return an empty string, and *make-quote* will respond by discarding the quote generation attempt and beginning another.
