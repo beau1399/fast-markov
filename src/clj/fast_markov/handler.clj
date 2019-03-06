@@ -89,10 +89,11 @@
 
 ;;;> (group 3 [1 2 3 4 5 6])
 ;;;((6) (5 6) (4 5 6) (3 4 5) (2 3 4) (1 2 3))
-(defn group-inner[num collect product]
+(defn group
+  ([num collect] (group num collect []))
+  ([num collect product]
   (let [fragment (take num collect) pr (cons fragment product) ]
-    (if (= (count fragment) 0) product (recur num (rest collect) pr))))
-(defn group [num collect] (group-inner num collect []))
+    (if (= (count fragment) 0) product (recur num (rest collect) pr)))))
 
 ;;;>(words-for "I")
 ;;; (("think" "the" "most")("think" "the" "most")("don't" "have" "all")
