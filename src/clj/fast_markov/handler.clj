@@ -1,6 +1,3 @@
-;;;TODO - doc parallelism implications
-;;;DOC - two approaches to "Starters" etc.: rm file and prune down large set vs. start w/ simple man'ly created file (The, I, A... must be in file)
-;;;TODO - is COMMA necessary? spacing issue?
 (ns fast-markov.handler
   (:require 
    [reitit.ring.coercion :as rrc]
