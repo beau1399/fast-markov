@@ -42,7 +42,7 @@ The file at fast-markov/src/clj/fast_markov/constants.clj defines some constants
 
 * Parameters *gui-rows* and *gui-cols* determine the size of the textarea control used by the "/learn" GUI.
 
-* Constant *escaper-space* is a lexer placeholders similar to *dot-token*, etc.
+* Constant *escaper-space* is a lexer placeholder similar to *dot-token*, etc.
 
 ### The Language File
 
