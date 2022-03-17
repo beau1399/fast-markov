@@ -26,7 +26,7 @@ You will likely want to use the code provided for something other than simulatin
 
 There are not many requirements for the content of the input file. It should end with a sentence terminator (. ? ! or a quote ending in one of these), or at least a word that occurs elsewhere in the text. You do not want to end the file with a word that does not exist anywhere else in the text, because this presents the Markov generator code with a token for which it cannot generate any reasonable followers.
 
-In general, input text will yield better results if it hews closely to the rules of standard written English. Sentence fragments, unclosed quotations, section headers / outlines, etc. will serve to confuse the Markov logic. Sentence terminators should be followed by a space, which helps to distinguish them from other valid uses of these symbols. Abbreviations ending in periods may get confused for the ends of sentences, though configuration options for dealing with know abbreviations are discussed further below.
+In general, input text will yield better results if it hews closely to the rules of standard written English. Sentence fragments, unclosed quotations, section headers / outlines, etc. will serve to confuse the Markov logic. Sentence terminators should be followed by a space, which helps to distinguish them from other valid uses of these symbols. Abbreviations ending in periods may get confused for the ends of sentences, though configuration options for dealing with known abbreviations are discussed further below.
 
 ### The Constants File
 
