@@ -14,7 +14,7 @@
 (def byline (slurp "byline"))
 
 ;;;How big are the fragments used to make quotes? Will be learned and stored in 
-;;; a file. It defaults to a range configured in contants.clj is the file isn't
+;;; a file. It defaults to a range configured in contants.clj if the file isn't
 ;;; found.
 (def lengths (atom
                (if (not (.exists (io/as-file "lengths")))
